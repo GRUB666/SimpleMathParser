@@ -31,17 +31,19 @@ bool smp::isLetter(char symb)
 }
 
 //If the function is called without arguments, all constants are set by default.
-void smp::InitializeConstants(std::map<char, double>* consts)
+void smp::InitializeConstants(std::map<char, double>* consts, bool addConstants)
 {
+	Constants.clear();
+
 	if (consts != nullptr)
-		Constants = *consts;
-
-	else
 	{
-		Constants.clear();
+		Constants = *consts;
+	}
 
-		Constants.emplace('p', PI_VALUE); //Default constants
-		Constants.emplace('e', E_VALUE);
+	if (addConstants)
+	{
+		Constants['p'] = PI_VALUE; //Default constants
+		Constants['e'] = E_VALUE;
 	}
 }
 
@@ -131,12 +133,19 @@ void smp::Oper::prepareString()
 	}
 }
 
-smp::Oper::~Oper()
+void smp::Oper::clearMemory()
 {
 	for (auto& var : sub_opers)
 	{
 		delete var;
 	}
+
+	sub_opers.clear();
+}
+
+smp::Oper::~Oper()
+{
+	clearMemory();
 }
 //--------------------------------
 
@@ -169,6 +178,7 @@ void smp::Expression::setExpression(std::string str)
 {
 	this->value = str;
 	prepareString();
+	clearMemory();
 	updateSubOpers();
 }
 
@@ -243,6 +253,7 @@ double Multiplication_Oper::getValue(double x)
 void smp::Multiplication_Oper::setExpression(std::string str)
 {
 	this->value = str;
+	clearMemory();
 	updateSubOpers();
 }
 
@@ -507,6 +518,7 @@ double Power_Oper::getValue(double x)
 void smp::Power_Oper::setExpression(std::string str)
 {
 	this->value = str;
+	clearMemory();
 	updateSubOpers();
 }
 

@@ -15,7 +15,7 @@ namespace smp //Simple Math Parser
 
 	double getNumberFromLetter(char symb, double x_value);
 	bool isLetter(char symb);
-	void InitializeConstants(std::map<char, double> *consts = nullptr);
+	void InitializeConstants(std::map<char, double> *consts = nullptr, bool addConstants = true);
 	void setNewXAlias(char symb);
 
 
@@ -30,6 +30,7 @@ namespace smp //Simple Math Parser
 
 		Oper(std::string value);
 		void prepareString();
+		void clearMemory();
 
 		~Oper();
 
