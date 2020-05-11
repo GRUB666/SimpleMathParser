@@ -185,7 +185,6 @@ void smp::Expression::setExpression(std::string str)
 void smp::Expression::updateSubOpers()
 {
 	actions.clear();
-	sub_opers.clear();
 
 	int i = 0;
 	if (value[i] != '-')
@@ -259,7 +258,6 @@ void smp::Multiplication_Oper::setExpression(std::string str)
 
 void smp::Multiplication_Oper::updateSubOpers()
 {
-	sub_opers.clear();
 	actions.clear();
 	actions.push_back('*');
 
@@ -524,7 +522,6 @@ void smp::Power_Oper::setExpression(std::string str)
 
 void smp::Power_Oper::updateSubOpers()
 {
-	sub_opers.clear();
 
 	int i = 0;
 	std::string power_base = "";
