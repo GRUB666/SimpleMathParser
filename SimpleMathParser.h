@@ -32,7 +32,7 @@ namespace smp //Simple Math Parser
 		void prepareString();
 		void clearMemory();
 
-		~Oper();
+		virtual ~Oper();
 
 	public:
 		virtual double getValue(double x = 0) = 0;
@@ -60,6 +60,8 @@ namespace smp //Simple Math Parser
 
 		double getValue(double x = 0) override;
 		void setExpression(std::string str) override;
+
+		~Expression() { int a; };
 	};
 
 
@@ -73,6 +75,8 @@ namespace smp //Simple Math Parser
 
 		double getValue(double x = 0) override;
 		void setExpression(std::string str) override;
+
+		~Multiplication_Oper() { int a; };
 	};
 
 
@@ -86,6 +90,8 @@ namespace smp //Simple Math Parser
 
 		double getValue(double x = 0) override;
 		void setExpression(std::string str) override;
+
+		~Number() { int a; };
 	};
 
 
