@@ -1,11 +1,11 @@
-# SimpleMathParser
+# RU
+# Простой математический парсер
 
-1.3
+Версия 1.3
 Особенности:
 - Добавлены сложные функции (вроде тригонометрии). Всего по умолчанию поддерживается 15 функций
 - Теперь можно очень просто и не вникая в мой код добавить собственные функции в парсер
 
-RU:
 Простой в использовании парсер  для обработки математических выражений (С++) 
 Достоинства:
 - Очень неприхотлив к входной строке (любое количество пробелов, знаки умножения ставить необязательно)
@@ -17,10 +17,10 @@ RU:
 Читайте всю информацию о том, как использовать библиотку в разделе Wiki
 
 
-EN:
-# SimpleMathParser
+# EN:
+# Simple Math Parser
 
-1.3
+Version 1.3
 Features:
 - Added complex functions (like trigonometry). In total, 15 functions are supported by default.
 - Now you can add your own functions to the parser very simply and without delving into my code
