@@ -5,15 +5,21 @@
 #include <vector>
 #include <math.h>
 
-namespace smp //Simple Math Parser
-{
-	//Constants
-	const double PI_VALUE = 3.141592653589793;
-	const double E_VALUE =  2.718281828459045;
-	static char x_alias = 'x';
 
+//Created by grub_666 (Alexander Furmanov)
+//Check README file on github: https://github.com/GRUB666/SimpleMathParser
+//My contact mail: aleksandrfurmanoa@gmail.com
+
+
+#define PI 3.141592653589793 //Just contants
+#define E 2.718281828459045
+
+namespace smp //Simple Math Parser namespace
+{
+	static char x_alias = 'x';
 	static std::map<char, double> Constants;
 
+	//Special functions
 	double getNumberFromLetter(char symb, double x_value);
 	bool isLetter(char symb);
 	bool isDigit(char symb);
@@ -21,7 +27,15 @@ namespace smp //Simple Math Parser
 	void InitializeConstants(std::map<char, double> *consts = nullptr, bool addConstants = true);
 	void setNewXAlias(char symb);
 
+	//Enumeration of all supported functions (You can add some stuff). 
+	//Alert! Functions should be arranged in descending order of the name length (example: ctg sholud first than tg)
+	static std::vector<std::string> Functions 
+	{
+		"arcctg", "arctg", "acos", "asin", "ctg", "tg", "sqrt", "sin", "cos", "cth", "lg", "ln", "sh", "ch", "th", 
+	};
 
+
+	//Exception-classes----------------------------
 	class InvalidExpression : public std::exception
 	{
 	private:
@@ -33,11 +47,25 @@ namespace smp //Simple Math Parser
 		const char* what() const noexcept { return m_error.c_str(); }
 	};
 
+	class RangeException : public std::exception
+	{
+	private:
+		std::string m_error;
 
-	class Oper //Abstract class 
+	public:
+		RangeException(std::string error) : m_error(error) {}
+
+		const char* what() const noexcept { return m_error.c_str(); }
+	};
+
+
+
+
+	class Oper //Base abstract class
 	{
 	private:
 		void CutUnnecessary();
+		void FunctionsMarker();
 		
 	protected:
 		std::vector<Oper*> sub_opers;
@@ -63,7 +91,7 @@ namespace smp //Simple Math Parser
 	};
 
 
-	class IActionsMap
+	class IActionsMap //Map of mathematical actions (multipling, dividing e.t.c)
 	{
 	protected:
 		std::vector<char> actions;
@@ -72,13 +100,13 @@ namespace smp //Simple Math Parser
 	};
 
 
-
+	//Main class. To be used in external space
 	class Expression : public Oper, public IActionsMap
 	{
 	private:
 		void updateSubOpers() override;
 	public:
-		Expression(std::string value = "");
+		Expression(std::string value = "", bool toBePrepared = true);
 
 		double getResult(double x) override;
 		double getResult() override { return getResult(x_value); }
@@ -131,24 +159,22 @@ namespace smp //Simple Math Parser
 	};
 
 
-
-
-	//BONUS!
-	//Additional class for generating ranges
-
-	class RangeException : public std::exception
+	class Function_Oper : public Oper
 	{
 	private:
-		std::string m_error;
-
+		void updateSubOpers() override;
 	public:
-		RangeException(std::string error) : m_error(error) {}
+		Function_Oper(std::string value);
 
-		const char* what() const noexcept { return m_error.c_str(); }
+		double getResult(double x) override;
+		void setExpression(std::string str) override;
 	};
 
 
 
+
+	//BONUS!
+	//Additional class for generating ranges
 	class RangeGenerator
 	{
 	private:
@@ -212,8 +238,8 @@ namespace smp //Simple Math Parser
 				}
 			}
 		}
-
 	};
+
 }
 
 
