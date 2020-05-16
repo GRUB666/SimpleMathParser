@@ -96,28 +96,31 @@ void smp::Oper::FunctionsMarker()
 		pos = value.find(Functions[i], 0);
 		std::string new_string = "({" + Functions[i] + "}";
 
-		while (pos != std::string::npos && value[pos + Functions[i].size()] != '}')
+		while (pos != std::string::npos)
 		{
-			value.replace(pos, Functions[i].length(), new_string);
-
-			int j = pos + Functions[i].size() + 4;
-			int opened_brackets = 1;
-
-			while (j < value.size() && opened_brackets != 0)
+			if (value[pos + Functions[i].size()] != '}')
 			{
-				if (value[j] == '(')
-					opened_brackets++;
-				else if (value[j] == ')')
-					opened_brackets--;
-				j++;
+				value.replace(pos, Functions[i].length(), new_string);
+
+				int j = pos + Functions[i].size() + 4;
+				int opened_brackets = 1;
+
+				while (j < value.size() && opened_brackets != 0)
+				{
+					if (value[j] == '(')
+						opened_brackets++;
+					else if (value[j] == ')')
+						opened_brackets--;
+					j++;
+				}
+
+				if (j < value.size() - 1)
+					value.insert(j, 1, ')');
+				else
+					value.push_back(')');
 			}
 
-			if (j < value.size() - 1)
-				value.insert(j, 1, ')');
-			else
-				value.push_back(')');
-
-			pos = value.find(Functions[i], 0);
+			pos = value.find(Functions[i], pos + 3);
 		}
 	}
 }
