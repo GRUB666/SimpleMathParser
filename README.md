@@ -2,7 +2,7 @@
 
 1.3
 Особенности:
-- Добавлены сложные функции (вроде тригонометрии). Всего по умолчанию поддерживается 14 функций
+- Добавлены сложные функции (вроде тригонометрии). Всего по умолчанию поддерживается 15 функций
 - Теперь можно очень просто и не вникая в мой код добавить собственные функции в парсер
 
 RU:
@@ -67,57 +67,58 @@ IActionsMap - Маленький интерфейс, содержащий в с�
 
 
 
-EN:
+1.3
+Features:
+- Added complex functions (like trigonometry). Found 15 functions by default
+- Add function code to parser
 
-Simple parser for processing mat expressions (C ++)
-At the moment, it supports basic mathematical operations (+ - * /) as well as raising to an arbitrary degree.
-So far, only a test version of the library, it is planned to add trigonometric functions as well as a logarithm.
+RU:
+Easy to use parser for processing mathematical expressions (C ++)
+Advantages:
+- Any number of spaces, multiplication signs are optional)
+- Fast enough (when used repeatedly, it shows that it is better than other parsers of a recursive type.
+- Easily expand math functions
+- Adding your own constants
+- Support for expressions with unknown x
 
 How to use:
 You must include the header file, inside which will be the namespace smp (Simple Math Parser)
 
-Before you start using it, it is recommended to call the global function InitializeConstants (map <char, double> * consts = nullptr, bool addConstants = true). *
+InitializeConstants (map <char, double> * consts = nullptr, bool addConstants = true). *
 
-If no arguments are passed to it, then it will add default constants (Pi and e)
+If he does not pass any arguments to him, then he will add default constants (Pi and e)
 The first parameter is a map dictionary with all the constants that you want to add from yourself. A constant can be just one letter, no combinations!
-The second parameter is responsible for adding the aforementioned default constants.
-| Any characters not defined in this method will be perceived by the parser as constants equal to 1 |!
+Default.
+Any characters not defined in this method will be perceived by the parser as constants equal to 1 |!
 
-You can also globally change a character pointing to a variable using setNewXAlias ​​(char symb). By default, unknown in all expressions is considered 'x'
+SetNewXAlias ​​(char symb). By default, unknown in all expressions is considered 'x'
 
-| The functions InitializeConstants and setNewXAlias ​​are global, i.e. will affect the processing of all expressions in the program, in the future it will be encapsulated in the Oper class |
+| The functions InitializeConstants and setNewXAlias ​​are global, i.e. it will be encapsulated in the Oper class in the future |
 
-For direct external use, the Expression class is intended, which takes a string with the necessary expression in the constructor (or in the setExpression method). There are no strict conditions for writing, multiplication signs next to letters are optional, spaces are allowed in any quantity. The operation of transferring an expression to an object is relatively slow, since immediately after it the string is analyzed, followed by the recursive creation of the objects. Therefore, it is necessary to use it in not the most critical places of the program.
+An expression that takes in the constructor (or in the setExpression method) results in an expressed expression. There are no strict conditions for writing, multiplication signs next to letters are optional, spaces are allowed in any quantity. Expression transfer operations in objects are relatively slow. Programs.
 
-To get the result, you must call the getValue method (float x = 0), which takes the value of the variable x as an input (it does not have to be in the expression. Then the method is called without arguments). Due to the recursive descent and the subsequent rise in the hierarchy of operations, getValue () works slower than pre-written expressions, on average, it takes 1500 nanoseconds to calculate such a function: 10x + x ^ 2 - 3/2.
+To get the result, you must call the getResult method (with floating point x = 0), which must be expressed. GetResult () is slower than pre-written expressions, on average, it takes 1500 nanoseconds to calculate such functions: 10x + x ^ 2 - 3/2.
 
 Architecture:
-Frankly, the parsing code itself is very congested and needs to be improved (although not a spaghetti code), especially the updateSubOpers () methods in the Expression and Multiplication_Oper classes.
+Honestly, the parsing code itself is very demanding and requires detailed codes (although not a spaghetti code), especially the updateSubOpers () methods in the Expression and Multiplication_Oper classes.
 The hierarchy is simple:
 
-1.Base abstract class Oper (Operation). It contains a vector of other sub-operations (pointers to them) (sub_opers), signatures of abstract methods:
-    virtual double getValue (double x = 0) = 0;
+
+
+The architecture presented is deprecated and is listed for version 1.1! Some methods have been renamed and added.
+
+
+1.Base abstract class Oper (Operation). It contains a vector of other operations (pointers), signatures of abstract methods:
+virtual double getValue (double x = 0) = 0;
 virtual void setExpression (std :: string str) = 0;
 virtual void updateSubOpers () = 0;
-    
+
 And implementations of the prepareString () and CutWhiteSpaces () methods (From the name you can guess what the latter does).
-prepareString (), in addition to calling CutWhiteSpaces (), adds multiplication signs (if there are none) before the letters and between the brackets for the parser to work correctly.
+prepareString (), in addition to calling CutWhiteSpaces (), indicates that for the parser to work correctly, you need to specify a letter between the brackets.
 
-IActionsMap - A small interface containing a char vector. It allows the Expression and Multiplication_Oper classes to know what action to perform with each individual suboperation.
+IActionsMap - A small interface containing a vector symbol. It allows the Expression and Multiplication_Oper classes to know what action to perform with each individual suboperation.
 
-2. Expression: Oper, IActionsMap. The main class mentioned above. After calling setExpression (), he, like almost all other classes from the list, analyzes the resulting string. The expression is divided into separate factors, each of the factors forms a new Multiplication_Oper object, its address is added to sub_opers. Then, when the getValue () method is called on the main instance in an external program, Expression calls the getValue () methods on all sub_opers members, after which it either adds or subtracts individual values ​​in accordance with the ActionsMap. The resulting number is the result of work
+2. Expression: Oper, IActionsMap. The main class mentioned above. After calling setExpression (), it analyzes the resulting version. The expression is divided into separate factors, each of which receives a new Multiplication_Oper object, its address is added to sub_opers. The expression uses the getValue () methods of all members of sub_opers, after which it either adds or subtracts individual values ​​in relation to the ActionMap. The resulting number is the result of work
 
-3. Multiplication_Oper: Oper, IActionsMap. The largest class in code. Its essence is that it must select separate factors from the line received from Expression (as Expression did with the terms), the difficulty is that the factor can be either a prime number or a new Expression expression, or maybe even a degree. It is necessary to determine exactly where this or that factor begins and where, depending on its type, add an element of the desired type to sub_opers.
-(I am aware that, for compact code, it was possible to make certain multipliers recursive one at a time, and not all at once. But for me it is not very productive, as it can make the hierarchy very large and difficult to debug)
-
-4. Number_Oper: Oper. The most basic operation (which is not an operation at all). Does not have sub_opers. It contains only the string value.
-When the getValue () method is called, it either converts value to a number and returns it, or, if value is a character, calls the getNumberFromLetter global method (char symb, double x_value), which returns the value corresponding to a specific letter. If this letter is x (or any other variable name), then returns
-
-The advantage of this library is its modularity. In other words, you yourself can write additional aspects of parsing: create a new class, inherit it from Oper and implement its abstract methods, i.e. implement exactly how it will work with the entered string. After that, you need to add the processing of finding your new function in the Multiplication_Oper class. For example, the sequence of characters is "sin" or "cos". After finding it, you need to describe the search for arguments for the function and finally passing all this to the constructor of your new class, followed by adding a pointer to sub_opers.
-
-
-
-What should be done:
-In addition to formal details, like adding trigonometry, you need to refine the structure so that you can encapsulate InitializeConstants and setNewXAlias ​​in Opers. Also, for a simplified implementation of everything that I described above, you need to modify the prepareString () method (so that it does not make "sin" "s * i * n"), and write an automatic handler for the presence of a sequence of characters (if the handler sees what goes something like "... log (...)", then it should take out further processing a separate function, where you can manually process specific functions.)
-Well, of course, you need to restructure the code for greater readability, although I'm not sure how much this can be done.
-
+3. Multiplication_Oper: Oper, IActionsMap. The largest class in code. This is an expression that must be obtained from the expression, and it must be both a prime and a new expression. The expression can be a power. Add an element of the required type to sub_opers.
+(I am aware that it was possible for compactness
