@@ -4,21 +4,6 @@ using namespace smp;
 
 
 //Special Functions -------------------------
-double smp::getNumberFromLetter(char symb, double x_value)
-{
-	if (symb != x_alias)
-	{
-		auto it = Constants.find(symb);
-		if (it != Constants.end())
-			return Constants.at(symb);
-		else
-			return 1;
-	}
-
-	else
-		return x_value;
-}
-
 bool smp::isLetter(char symb)
 {
 	if (symb >= 'a' && symb <= 'z' || symb >= 'A' && symb <= 'Z') 
@@ -43,7 +28,7 @@ bool smp::isServiceSymbol(char symb)
 }
 
 //If the function is called without arguments, all constants are set by default.
-void smp::InitializeConstants(std::map<char, double>* consts, bool addConstants)
+void smp::ParserSettings::InitializeConstants(std::map<char, double>* consts, bool addConstants)
 {
 	Constants.clear();
 
@@ -54,13 +39,70 @@ void smp::InitializeConstants(std::map<char, double>* consts, bool addConstants)
 
 	if (addConstants)
 	{
-		if(Constants.find('p') == Constants.end())//Default constants (No forced redifinitions)
+		if (Constants.find('p') == Constants.end())//Default constants (No forced redifinitions)
 			Constants['p'] = PI;
-		 
+
 		if (Constants.find('e') == Constants.end())
 			Constants['e'] = E;
 	}
 }
+
+void smp::ParserSettings::InitializeFunctions(std::map<std::string, double(*)(double argument)> *funcs, bool addFunctions)
+{
+	Functions.clear();
+
+	if (funcs != nullptr)
+		this->Functions = *funcs;
+
+	if (addFunctions) //Standart functions
+	{
+		Functions["arcctg"] = [](double argument) { return std::atan(1 / argument); };
+		Functions["ctg"] = [](double argument) { return 1 / std::tan(argument); };
+		Functions["cth"] = [](double argument) { return 1 / std::tanh(argument); };
+
+		Functions["sin"] = std::sin;
+		Functions["cos"] = std::cos;
+		Functions["tan"] = std::tan;
+		Functions["asin"] = std::asin;
+		Functions["acos"] = std::acos;
+		Functions["arctg"] = std::atan;
+
+		Functions["sh"] = std::sinh;
+		Functions["ch"] = std::cosh;
+		Functions["th"] = std::tanh;
+
+		Functions["sqrt"] = std::sqrt;
+		Functions["lg"] = std::log;
+		Functions["ln"] = [](double argument) { return std::log(argument) / std::log(E); };
+	}
+}
+
+double smp::ParserSettings::getNumberFromLetter(char symb, double x_value)
+{
+	if (symb != x_alias)
+	{
+		auto it = Constants.find(symb);
+		if (it != Constants.end())
+			return Constants.at(symb);
+		else
+			return 1;
+	}
+
+	else
+		return x_value;
+	return 0.0;
+}
+
+Function smp::ParserSettings::getFunctionFromString(std::string func_name)
+{
+	auto it = Functions.find(func_name);
+
+	if (it == Functions.end())
+		throw InvalidExpression("Something went wrong with function. Expression isn`t correct!");
+
+	return Functions[func_name];
+}
+
 
 void smp::setNewXAlias(char symb)
 {
@@ -68,12 +110,19 @@ void smp::setNewXAlias(char symb)
 }
 
 
-
-
 //Oper definintions-------------
-Oper::Oper(std::string value)
+Oper::Oper(std::string value, std::shared_ptr<ParserSettings> ps)
 {
 	this->value = value;
+	
+	if (ps == nullptr)
+	{
+		std::shared_ptr<ParserSettings> ps_tmp(new ParserSettings);
+		this->ps = ps_tmp;
+	}
+		
+	else
+		this->ps = ps;
 }
 
 void smp::Oper::CutUnnecessary() //Whitespaces, special symbols and unreadable symbols like '?'
@@ -91,18 +140,18 @@ void smp::Oper::CutUnnecessary() //Whitespaces, special symbols and unreadable s
 void smp::Oper::FunctionsMarker()
 {
 	int pos;
-	for (int i = 0; i < Functions.size(); i++)
+	for (auto &var : ps->Functions)
 	{
-		pos = value.find(Functions[i], 0);
-		std::string new_string = "({" + Functions[i] + "}";
+		pos = value.find(var.first, 0);
+		std::string new_string = "({" + var.first + "}";
 
 		while (pos != std::string::npos)
 		{
-			if (value[pos + Functions[i].size()] != '}')
+			if (value[pos + var.first.size()] != '}')
 			{
-				value.replace(pos, Functions[i].length(), new_string);
+				value.replace(pos, var.first.length(), new_string);
 
-				int j = pos + Functions[i].size() + 4;
+				int j = pos + var.first.size() + 4;
 				int opened_brackets = 1;
 
 				while (j < value.size() && opened_brackets != 0)
@@ -120,7 +169,7 @@ void smp::Oper::FunctionsMarker()
 					value.push_back(')');
 			}
 
-			pos = value.find(Functions[i], pos + 3);
+			pos = value.find(var.first, pos + 3);
 		}
 	}
 }
@@ -198,11 +247,6 @@ void smp::Oper::prepareString()
 
 void smp::Oper::clearMemory()
 {
-	for (auto& var : sub_opers)
-	{
-		delete var;
-	}
-
 	sub_opers.clear();
 }
 
@@ -222,6 +266,31 @@ void smp::Oper::checkBracketsCorrect()
 		throw InvalidExpression("Brackets count is invalid. Expression isn`t correct!");
 }
 
+void smp::Oper::setConstants(std::map<char, double>* consts, bool addConstants)
+{
+	ps->InitializeConstants(consts, addConstants);
+}
+
+void smp::Oper::addConstant(char symb, double value)
+{
+	ps->Constants.emplace(symb, value);
+}
+
+void smp::Oper::resetConstants()
+{
+	ps->Constants.clear();
+}
+
+void smp::Oper::setFunctions(std::map<std::string, double(*)(double argument)>* funcs, bool addFunctions)
+{
+	ps->InitializeFunctions(funcs, addFunctions);
+}
+
+void smp::Oper::addFunction(std::string name, double(*function)(double argument))
+{
+	ps->Functions[name] = function;
+}
+
 smp::Oper::~Oper()
 {
 	clearMemory();
@@ -231,7 +300,7 @@ smp::Oper::~Oper()
 
 
 //Expression defenitions----
-Expression::Expression(std::string value, bool toBePrepared) : Oper(value)
+Expression::Expression(std::string value, bool toBePrepared, std::shared_ptr<ParserSettings> ps) : Oper(value, ps)
 { 	
 	checkBracketsCorrect();
 
@@ -312,7 +381,7 @@ void smp::Expression::updateSubOpers()
 			new_string.push_back(value[i]);
 		}
 
-		sub_opers.push_back(new Multiplication_Oper(new_string));
+		sub_opers.push_back(std::shared_ptr<Oper>(new Multiplication_Oper(new_string, ps)));
 	}
 }
 //------------------------
@@ -320,7 +389,7 @@ void smp::Expression::updateSubOpers()
 
 
 //Multiplication_Oper defenitions------------------------------------------
-Multiplication_Oper::Multiplication_Oper(std::string value) : Oper(value) { setExpression(value); }
+Multiplication_Oper::Multiplication_Oper(std::string value, std::shared_ptr<ParserSettings> ps) : Oper(value, ps) { setExpression(value); }
 
 double Multiplication_Oper::getResult(double x)
 {
@@ -390,15 +459,15 @@ void smp::Multiplication_Oper::updateSubOpers()
 						{
 							if (isComplexPowerMode == 0)
 							{
-								new_string.erase(0, 1);
-								sub_opers.push_back(new Expression(new_string));
+								new_string.erase(0, 1); 
+								sub_opers.push_back(std::shared_ptr<Oper>(new Expression(new_string, false, ps)));
 								break;
 							}
 
 							else
 							{
 								new_string.push_back(value[i]);
-								sub_opers.push_back(new Power_Oper(new_string));
+								sub_opers.push_back(std::shared_ptr<Oper>(new Power_Oper(new_string, ps)));
 								break;
 							}
 
@@ -410,14 +479,14 @@ void smp::Multiplication_Oper::updateSubOpers()
 						if (isComplexPowerMode == 0)
 						{
 							new_string.erase(0, 1);
-							sub_opers.push_back(new Expression(new_string, false));
+							sub_opers.push_back(std::shared_ptr<Oper>(new Expression(new_string, false, ps)));
 							break;
 						}
 
 						else
 						{
 							new_string.push_back(value[i]);
-							sub_opers.push_back(new Power_Oper(new_string));
+							sub_opers.push_back(std::shared_ptr<Oper>(new Power_Oper(new_string, ps)));
 							break;
 						}
 					}
@@ -432,7 +501,7 @@ void smp::Multiplication_Oper::updateSubOpers()
 				{
 					if ((value[i] == '*' || value[i] == '/' || isLetter(value[i])) && i < value.size() - 1 && value[i + 1] != '^')
 					{
-						sub_opers.push_back(new Power_Oper(new_string));
+						sub_opers.push_back(std::shared_ptr<Oper>(new Power_Oper(new_string, ps)));
 						break;
 					}
 				}
@@ -443,9 +512,9 @@ void smp::Multiplication_Oper::updateSubOpers()
 			if (i > value.size() - 1)
 			{
 				if (isComplexPowerMode == 0)
-					sub_opers.push_back(new Expression(new_string, false));
+					sub_opers.push_back(std::shared_ptr<Oper>(new Expression(new_string, false, ps)));
 				else
-					sub_opers.push_back(new Power_Oper(new_string));
+					sub_opers.push_back(std::shared_ptr<Oper>(new Power_Oper(new_string, ps)));
 			}
 
 		}
@@ -464,7 +533,7 @@ void smp::Multiplication_Oper::updateSubOpers()
 				new_string.push_back(value[i]);
 			}
 
-			sub_opers.push_back(new Function_Oper(new_string));
+			sub_opers.push_back(std::shared_ptr<Oper>(new Function_Oper(new_string, ps)));
 		}
 
 		//A number
@@ -478,7 +547,7 @@ void smp::Multiplication_Oper::updateSubOpers()
 				{
 					if (value[i] == '(' || isLetter(value[i]) || value[i] == '*' || value[i] == '/')
 					{
-						sub_opers.push_back(new Number(new_string));
+						sub_opers.push_back(std::shared_ptr<Oper>(new Number(new_string, ps)));
 						break;
 					}
 				}
@@ -512,7 +581,7 @@ void smp::Multiplication_Oper::updateSubOpers()
 							else if(opened_count == 0)
 							{
 								new_string.push_back(value[i]);
-								sub_opers.push_back(new Power_Oper(new_string));
+								sub_opers.push_back(std::shared_ptr<Oper>(new Power_Oper(new_string, ps)));
 								break;
 							}
 						}
@@ -520,7 +589,7 @@ void smp::Multiplication_Oper::updateSubOpers()
 						else if (opened_count == 0)
 						{
 							new_string.push_back(value[i]);
-							sub_opers.push_back(new Power_Oper(new_string));
+							sub_opers.push_back(std::shared_ptr<Oper>(new Power_Oper(new_string, ps)));
 							break;
 						}
 					}
@@ -536,7 +605,7 @@ void smp::Multiplication_Oper::updateSubOpers()
 					if ((value[i] == '*' || value[i] == '/' || isLetter(value[i])) && i < value.size() - 1 && value[i + 1] != '^')
 					{
 						new_string.push_back(value[i]);
-						sub_opers.push_back(new Power_Oper(new_string));
+						sub_opers.push_back(std::shared_ptr<Oper>(new Power_Oper(new_string, ps)));
 						break;
 					}
 				}
@@ -547,9 +616,9 @@ void smp::Multiplication_Oper::updateSubOpers()
 			if (i > value.size() - 1)
 			{
 				if(isComplexPowerMode == 0)
-					sub_opers.push_back(new Number(new_string));
+					sub_opers.push_back(std::shared_ptr<Oper>(new Number(new_string, ps)));
 				else 
-					sub_opers.push_back(new Power_Oper(new_string));
+					sub_opers.push_back(std::shared_ptr<Oper>(new Power_Oper(new_string, ps)));
 			}
 		}
 
@@ -587,7 +656,7 @@ void smp::Multiplication_Oper::updateSubOpers()
 							else if (opened_count == 0)
 							{
 								new_string.push_back(value[i]);
-								sub_opers.push_back(new Power_Oper(new_string));
+								sub_opers.push_back(std::shared_ptr<Oper>(new Power_Oper(new_string, ps)));
 								break;
 							}
 						}
@@ -595,7 +664,7 @@ void smp::Multiplication_Oper::updateSubOpers()
 						else if (opened_count == 0)
 						{
 							new_string.push_back(value[i]);
-							sub_opers.push_back(new Power_Oper(new_string));
+							sub_opers.push_back(std::shared_ptr<Oper>(new Power_Oper(new_string, ps)));
 							break;
 						}
 					}
@@ -619,7 +688,7 @@ void smp::Multiplication_Oper::updateSubOpers()
 						if ((value[i] == '*' || value[i] == '/' || isLetter(value[i])) && i < value.size() - 1 && value[i + 1] != '^')
 						{
 							new_string.push_back(value[i]);
-							sub_opers.push_back(new Power_Oper(new_string));
+							sub_opers.push_back(std::shared_ptr<Oper>(new Power_Oper(new_string, ps)));
 							break;
 						}
 					}
@@ -629,14 +698,14 @@ void smp::Multiplication_Oper::updateSubOpers()
 			}
 
 			if (i > value.size() - 1)
-				sub_opers.push_back(new Power_Oper(new_string));
+				sub_opers.push_back(std::shared_ptr<Oper>(new Power_Oper(new_string, ps)));
 		}
 
 		//Just x
 		else
 		{
 			new_string.push_back(value[i]);
-			sub_opers.push_back(new Number(new_string));
+			sub_opers.push_back(std::shared_ptr<Oper>(new Number(new_string, ps)));
 			i++;
 		}
 	}
@@ -645,7 +714,7 @@ void smp::Multiplication_Oper::updateSubOpers()
 
 
 //Power_Oper defenitions------------------------------------------
-Power_Oper::Power_Oper(std::string value) : Oper(value) { setExpression(value); }
+Power_Oper::Power_Oper(std::string value, std::shared_ptr<ParserSettings> ps) : Oper(value, ps) { setExpression(value); }
 
 double Power_Oper::getResult(double x)
 {
@@ -684,7 +753,7 @@ void smp::Power_Oper::updateSubOpers()
 			}
 			i += 2;
 
-			sub_opers.push_back(new Expression(power_base, false));
+			sub_opers.push_back(std::shared_ptr<Oper>(new Expression(power_base, false, ps)));
 		}
 
 		else
@@ -698,7 +767,7 @@ void smp::Power_Oper::updateSubOpers()
 			}
 			i++;
 
-			sub_opers.push_back(new Number(power_base));
+			sub_opers.push_back(std::shared_ptr<Oper>(new Number(power_base, ps)));
 		}
 	}
 
@@ -708,21 +777,21 @@ void smp::Power_Oper::updateSubOpers()
 		power_factor.push_back(value[i]);
 	}
 
-	sub_opers.push_back(new Expression(power_factor, false));
+	sub_opers.push_back(std::shared_ptr<Oper>(new Expression(power_factor, false, ps)));
 }
 //------------------------
 
 
 
 //Number definitions------
-Number::Number(std::string value) : Oper(value) {}
+Number::Number(std::string value, std::shared_ptr<ParserSettings> ps) : Oper(value, ps) {}
 
 double Number::getResult(double x)
 {
 	if (value.size() != 0)
 	{
 		if (isLetter(value[0]))
-			return getNumberFromLetter(value[0], x);
+			return ps->getNumberFromLetter(value[0], x);
 		else
 		{
 			try
@@ -754,7 +823,7 @@ void smp::Number::setExpression(std::string str)
 
 
 //Function definitions
-smp::Function_Oper::Function_Oper(std::string value) : Oper(value) { setExpression(value); }
+smp::Function_Oper::Function_Oper(std::string value, std::shared_ptr<ParserSettings> ps) : Oper(value, ps) { setExpression(value); }
 
 void smp::Function_Oper::setExpression(std::string str)
 {
@@ -765,95 +834,18 @@ void smp::Function_Oper::setExpression(std::string str)
 
 double smp::Function_Oper::getResult(double x) //You can add your functions there (Check documentation)
 {
-	int i;
-	for (i = 0; i < Functions.size(); i++) //Definding the the type of function
+	std::string func_string;
+	for (auto & var : ps->Functions) //Definding the the type of function
 	{
-		if (value.find(Functions[i], 0) != std::string::npos)
+		if (value.find(var.first, 0) != std::string::npos)
+		{
+			func_string = var.first;
 			break;
+		}
+			
 	}
 
-    if (Functions[i] == "sqrt")
-	{
-		return std::pow(sub_opers[0]->getResult(x), 0.5);
-	}
-
-	else if (Functions[i] == "sin")
-	{
-		return std::sin(sub_opers[0]->getResult(x));
-	}
-
-	else if (Functions[i] == "cos")
-	{
-		double argument = sub_opers[0]->getResult(x);
-
-		if (argument == PI / 2) //Just little bit cheating
-			return 0;
-
-		return std::cos(argument);
-	}
-
-	else if (Functions[i] == "tg")
-	{
-		return std::tan(sub_opers[0]->getResult(x));
-	}
-
-	else if (Functions[i] == "ctg")
-	{
-		return 1/std::tan(sub_opers[0]->getResult(x));
-	}
-
-	else if (Functions[i] == "lg")
-	{
-		return std::log10(sub_opers[0]->getResult(x));
-	}
-
-	else if (Functions[i] == "ln")
-	{
-		return std::log(sub_opers[0]->getResult(x)) / std::log(E);
-	}
-
-	else if (Functions[i] == "asin")
-	{
-		return std::asin(sub_opers[0]->getResult(x));
-	}
-
-	else if (Functions[i] == "acos")
-	{
-		return std::acos(sub_opers[0]->getResult(x));
-	}
-
-	else if (Functions[i] == "arctg")
-	{
-		return std::atan(sub_opers[0]->getResult(x));
-	}
-
-	else if (Functions[i] == "arcctg")
-	{
-		return std::atan(1/(sub_opers[0]->getResult(x)));
-	}
-
-	else if (Functions[i] == "sh")
-	{
-		return std::sinh(sub_opers[0]->getResult(x));
-	}
-
-	else if (Functions[i] == "ch")
-	{
-		return std::cosh(sub_opers[0]->getResult(x));
-	}
-
-	else if (Functions[i] == "th")
-	{
-		return std::tanh(sub_opers[0]->getResult(x));
-	}
-
-	else if (Functions[i] == "cth")
-	{
-		return std::tanh(1/(sub_opers[0]->getResult(x)));
-	}
-
-	throw InvalidExpression("Something wrong with function! Expression isn`t correct!"); //Shouldn`t be executed
-	return 0;
+	return ps->getFunctionFromString(func_string)(sub_opers[0]->getResult(x));
 }
 
 void smp::Function_Oper::updateSubOpers()
@@ -869,7 +861,7 @@ void smp::Function_Oper::updateSubOpers()
 	for (i; i < value.size() - 1; i++)
 		argument.push_back(value[i]);
 
-	sub_opers.push_back(new Expression(argument));
+	sub_opers.push_back(std::shared_ptr<Oper>(new Expression(argument, false, ps)));
 }
 
 

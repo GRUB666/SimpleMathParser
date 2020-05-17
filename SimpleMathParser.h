@@ -4,6 +4,7 @@
 #include <map>
 #include <vector>
 #include <math.h>
+#include <memory>
 
 
 //Created by grub_666 (Alexander Furmanov)
@@ -11,28 +12,32 @@
 //My contact mail: aleksandrfurmanoa@gmail.com
 
 
-#define PI 3.141592653589793 //Just contants
-#define E 2.718281828459045
+constexpr auto PI = 3.141592653589793; //Just contants;
+constexpr auto E = 2.718281828459045;
 
 namespace smp //Simple Math Parser namespace
 {
 	static char x_alias = 'x';
-	static std::map<char, double> Constants;
 
 	//Special functions
-	double getNumberFromLetter(char symb, double x_value);
 	bool isLetter(char symb);
 	bool isDigit(char symb);
 	bool isServiceSymbol(char symb);
-	void InitializeConstants(std::map<char, double> *consts = nullptr, bool addConstants = true);
 	void setNewXAlias(char symb);
+
+	/*template <typename CL>
+	double lambdaToFunctionPointer(double x)
+	{
+		CL cl;
+		return cl(x);
+	}*/
 
 	//Enumeration of all supported functions (You can add some stuff). 
 	//Alert! Functions should be arranged in descending order of the name length (example: ctg sholud first than tg)
-	static std::vector<std::string> Functions 
+	/*static std::vector<std::string> Functions 
 	{
 		"arcctg", "arctg", "acos", "asin", "ctg", "tg", "sqrt", "sin", "cos", "cth", "lg", "ln", "sh", "ch", "th", 
-	};
+	};*/
 
 
 	//Exception-classes----------------------------
@@ -59,6 +64,26 @@ namespace smp //Simple Math Parser namespace
 	};
 
 
+	using Function = double(*)(double argument);
+
+	struct ParserSettings
+	{
+		std::map<char, double> Constants;
+		std::map<std::string, double(*)(double argument)> Functions;
+
+
+		ParserSettings()
+		{
+			InitializeConstants();
+			InitializeFunctions();
+		}
+
+		void InitializeConstants(std::map<char, double> *consts = nullptr, bool addConstants = true);
+		void InitializeFunctions(std::map<std::string, double(*)(double argument)> *funcs = nullptr, bool addFunctions = true);
+
+		double getNumberFromLetter(char symb, double x_value);
+		Function getFunctionFromString(std::string func_name);
+	};
 
 
 	class Oper //Base abstract class
@@ -68,11 +93,12 @@ namespace smp //Simple Math Parser namespace
 		void FunctionsMarker();
 		
 	protected:
-		std::vector<Oper*> sub_opers;
+		std::vector<std::shared_ptr<Oper>> sub_opers;
 		std::string value;
+		std::shared_ptr<ParserSettings> ps;
 		double x_value;
 
-		Oper(std::string value = "");
+		Oper(std::string value = "", std::shared_ptr<ParserSettings> ps = nullptr);
 		void prepareString();
 		void clearMemory();
 		void checkBracketsCorrect();
@@ -88,6 +114,12 @@ namespace smp //Simple Math Parser namespace
 		std::string getExpression() { return this->value; }
 		void setXValue(double x) { x_value = x; }
 		double getXValue() { return x_value; }
+		void setConstants(std::map<char, double> *consts = nullptr, bool addConstants = true);
+		void addConstant(char symb, double value);
+		void resetConstants();
+
+		void setFunctions(std::map<std::string, double(*)(double argument)> *funcs = nullptr, bool addFunctions = true);
+		void addFunction(std::string name, double(*function)(double argument));
 	};
 
 
@@ -106,13 +138,11 @@ namespace smp //Simple Math Parser namespace
 	private:
 		void updateSubOpers() override;
 	public:
-		Expression(std::string value = "", bool toBePrepared = true);
+		Expression(std::string value = "", bool toBePrepared = true, std::shared_ptr<ParserSettings> ps = nullptr);
 
 		double getResult(double x) override;
 		double getResult() override { return getResult(x_value); }
 		void setExpression(std::string str = "") override;
-
-		~Expression() { int a; };
 	};
 
 
@@ -122,12 +152,12 @@ namespace smp //Simple Math Parser namespace
 	private:
 		void updateSubOpers() override;
 	public:
-		Multiplication_Oper(std::string value);
+		Multiplication_Oper(std::string value, std::shared_ptr<ParserSettings> ps);
 
 		double getResult(double x) override;
 		void setExpression(std::string str) override;
 
-		~Multiplication_Oper() { int a; };
+		~Multiplication_Oper() { };
 	};
 
 
@@ -137,12 +167,12 @@ namespace smp //Simple Math Parser namespace
 	private:
 		void updateSubOpers() override {}
 	public:
-		Number(std::string value);
+		Number(std::string value, std::shared_ptr<ParserSettings> ps);
 
 		double getResult(double x) override;
 		void setExpression(std::string str) override;
 
-		~Number() { int a; };
+		~Number() { };
 	};
 
 
@@ -152,7 +182,7 @@ namespace smp //Simple Math Parser namespace
 	private:
 		void updateSubOpers() override;
 	public:
-		Power_Oper(std::string value);
+		Power_Oper(std::string value, std::shared_ptr<ParserSettings> ps);
 
 		double getResult(double x) override;
 		void setExpression(std::string str) override;
@@ -164,7 +194,7 @@ namespace smp //Simple Math Parser namespace
 	private:
 		void updateSubOpers() override;
 	public:
-		Function_Oper(std::string value);
+		Function_Oper(std::string value, std::shared_ptr<ParserSettings> ps);
 
 		double getResult(double x) override;
 		void setExpression(std::string str) override;
