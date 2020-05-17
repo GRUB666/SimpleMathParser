@@ -3,30 +3,6 @@
 using namespace smp;
 
 
-//Special Functions -------------------------
-bool smp::isLetter(char symb)
-{
-	if (symb >= 'a' && symb <= 'z' || symb >= 'A' && symb <= 'Z') 
-		return true;
-
-	return false;
-}
-
-bool smp::isDigit(char symb)
-{
-	if (symb >= '0' && symb <= '9')
-		return true;
-
-	return false;
-}
-
-bool smp::isServiceSymbol(char symb)
-{
-	if (symb == '(' || symb == ')' || symb == '+' || symb == '-' || symb == '*' || symb == '/' || symb == '^' || symb == '.' || symb == ':')
-		return true;
-	return false;
-}
-
 //If the function is called without arguments, all constants are set by default.
 void smp::ParserSettings::InitializeConstants(std::map<char, double>* consts, bool addConstants)
 {
@@ -98,16 +74,13 @@ Function smp::ParserSettings::getFunctionFromString(std::string func_name)
 	auto it = Functions.find(func_name);
 
 	if (it == Functions.end())
-		throw InvalidExpression("Something went wrong with function. Expression isn`t correct!");
+		throw InvalidExpression(MathFunctionCrash, "Something went wrong with function. Expression isn`t correct!");
 
 	return Functions[func_name];
 }
 
 
-void smp::setNewXAlias(char symb)
-{
-	x_alias = symb;
-}
+
 
 
 //Oper definintions-------------
@@ -124,6 +97,35 @@ Oper::Oper(std::string value, std::shared_ptr<ParserSettings> ps)
 	else
 		this->ps = ps;
 }
+
+void smp::Oper::setNewXAlias(char symb)
+{
+	ps->x_alias = symb;
+}
+
+bool smp::Oper::isLetter(char symb)
+{
+	if (symb >= 'a' && symb <= 'z' || symb >= 'A' && symb <= 'Z')
+		return true;
+
+	return false;
+}
+
+bool smp::Oper::isDigit(char symb)
+{
+	if (symb >= '0' && symb <= '9')
+		return true;
+
+	return false;
+}
+
+bool smp::Oper::isServiceSymbol(char symb)
+{
+	if (symb == '(' || symb == ')' || symb == '+' || symb == '-' || symb == '*' || symb == '/' || symb == '^' || symb == '.' || symb == ':')
+		return true;
+	return false;
+}
+
 
 void smp::Oper::CutUnnecessary() //Whitespaces, special symbols and unreadable symbols like '?'
 {
@@ -176,6 +178,7 @@ void smp::Oper::FunctionsMarker()
 
 void smp::Oper::prepareString()
 {
+	replaceIncorrectSymbols();
 	CutUnnecessary();
 	FunctionsMarker();
 
@@ -245,7 +248,7 @@ void smp::Oper::prepareString()
 	}
 }
 
-void smp::Oper::clearMemory()
+void smp::Oper::clearSubOpers()
 {
 	sub_opers.clear();
 }
@@ -263,7 +266,34 @@ void smp::Oper::checkBracketsCorrect()
 	}
 
 	if (opened_count != 0)
-		throw InvalidExpression("Brackets count is invalid. Expression isn`t correct!");
+		throw InvalidExpression(InvalidBracketsCount, "Brackets count is invalid. Expression isn`t correct!");
+}
+
+
+void smp::Oper::replaceIncorrectSymbols()
+{
+	char to_change_syms[2]{ ':', ',' };
+
+	for (auto var : to_change_syms)
+	{
+		int to_change = value.find(var); //Find all ':'
+		while (to_change != std::string::npos)
+		{
+			switch (var)
+			{
+			case ':':
+				value[to_change] = '/';
+				break;
+			case ',':
+				value[to_change] = '.';
+				break;
+			}
+				
+			to_change = value.find(var);
+		}
+	}
+
+	
 }
 
 void smp::Oper::setConstants(std::map<char, double>* consts, bool addConstants)
@@ -276,11 +306,6 @@ void smp::Oper::addConstant(char symb, double value)
 	ps->Constants.emplace(symb, value);
 }
 
-void smp::Oper::resetConstants()
-{
-	ps->Constants.clear();
-}
-
 void smp::Oper::setFunctions(std::map<std::string, double(*)(double argument)>* funcs, bool addFunctions)
 {
 	ps->InitializeFunctions(funcs, addFunctions);
@@ -291,9 +316,25 @@ void smp::Oper::addFunction(std::string name, double(*function)(double argument)
 	ps->Functions[name] = function;
 }
 
+void smp::Oper::resetConstants(bool addDefault)
+{
+	if (addDefault)
+		ps->InitializeConstants();
+	else
+		ps->Constants.clear();
+}
+
+void smp::Oper::resetFunctions(bool addDefault)
+{
+	if (addDefault)
+		ps->InitializeFunctions();
+	else
+		ps->Constants.clear();
+}
+
 smp::Oper::~Oper()
 {
-	clearMemory();
+	clearSubOpers();
 }
 //--------------------------------
 
@@ -335,7 +376,7 @@ void smp::Expression::setExpression(std::string str)
 	this->value = str;
 	checkBracketsCorrect();
 	prepareString();
-	clearMemory();
+	clearSubOpers();
 	updateSubOpers();
 }
 
@@ -408,7 +449,7 @@ double Multiplication_Oper::getResult(double x)
 void smp::Multiplication_Oper::setExpression(std::string str)
 {
 	this->value = str;
-	clearMemory();
+	clearSubOpers();
 	updateSubOpers();
 }
 
@@ -724,7 +765,7 @@ double Power_Oper::getResult(double x)
 void smp::Power_Oper::setExpression(std::string str)
 {
 	this->value = str;
-	clearMemory();
+	clearSubOpers();
 	updateSubOpers();
 }
 
@@ -801,7 +842,7 @@ double Number::getResult(double x)
 
 			catch (std::invalid_argument&)
 			{
-				throw InvalidExpression("stof() couldn`t convert string to double. Expression isn`t correct!");
+				throw InvalidExpression(ConversionError, "stof() couldn`t convert string to double. Expression isn`t correct!");
 			}
 		}
 			
@@ -809,7 +850,7 @@ double Number::getResult(double x)
 
 	else
 	{
-		throw InvalidExpression("String was empty. Expression isn`t correct!");
+		throw InvalidExpression(IncorrectSyntax, "String was empty. Expression isn`t correct!");
 	}
 }
 
@@ -828,7 +869,7 @@ smp::Function_Oper::Function_Oper(std::string value, std::shared_ptr<ParserSetti
 void smp::Function_Oper::setExpression(std::string str)
 {
 	this->value = str;
-	clearMemory();
+	clearSubOpers();
 	updateSubOpers();
 }
 

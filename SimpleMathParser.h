@@ -12,42 +12,33 @@
 //My contact mail: aleksandrfurmanoa@gmail.com
 
 
-constexpr auto PI = 3.141592653589793; //Just contants;
+constexpr auto PI = 3.141592653589793; //Just constants;
 constexpr auto E = 2.718281828459045;
 
 namespace smp //Simple Math Parser namespace
 {
-	static char x_alias = 'x';
-
-	//Special functions
-	bool isLetter(char symb);
-	bool isDigit(char symb);
-	bool isServiceSymbol(char symb);
-	void setNewXAlias(char symb);
-
-	/*template <typename CL>
-	double lambdaToFunctionPointer(double x)
-	{
-		CL cl;
-		return cl(x);
-	}*/
-
-	//Enumeration of all supported functions (You can add some stuff). 
-	//Alert! Functions should be arranged in descending order of the name length (example: ctg sholud first than tg)
-	/*static std::vector<std::string> Functions 
-	{
-		"arcctg", "arctg", "acos", "asin", "ctg", "tg", "sqrt", "sin", "cos", "cth", "lg", "ln", "sh", "ch", "th", 
-	};*/
-
-
 	//Exception-classes----------------------------
-	class InvalidExpression : public std::exception
+	enum  ExceptionType //Views of exceptions
+	{
+		IncorrectSyntax,
+		InvalidBracketsCount,
+		MathFunctionCrash,
+		ConversionError
+	};
+
+	class InvalidExpression : public std::exception //Main exception class
 	{
 	private:
 		std::string m_error;
+		ExceptionType type;
 
 	public:
-		InvalidExpression(std::string error) : m_error(error) {}
+		InvalidExpression(ExceptionType tp, std::string error) : m_error(error) 
+		{
+			type = tp;
+		}
+
+		ExceptionType getExceptionType() { return type; }
 
 		const char* what() const noexcept { return m_error.c_str(); }
 	};
@@ -64,12 +55,15 @@ namespace smp //Simple Math Parser namespace
 	};
 
 
+
+
 	using Function = double(*)(double argument);
 
 	struct ParserSettings
 	{
 		std::map<char, double> Constants;
 		std::map<std::string, double(*)(double argument)> Functions;
+		char x_alias = 'x';
 
 
 		ParserSettings()
@@ -100,8 +94,12 @@ namespace smp //Simple Math Parser namespace
 
 		Oper(std::string value = "", std::shared_ptr<ParserSettings> ps = nullptr);
 		void prepareString();
-		void clearMemory();
+		void clearSubOpers();
 		void checkBracketsCorrect();
+		void replaceIncorrectSymbols();
+		bool isLetter(char symb);
+		bool isDigit(char symb);
+		bool isServiceSymbol(char symb);
 
 		virtual ~Oper();
 
@@ -116,10 +114,12 @@ namespace smp //Simple Math Parser namespace
 		double getXValue() { return x_value; }
 		void setConstants(std::map<char, double> *consts = nullptr, bool addConstants = true);
 		void addConstant(char symb, double value);
-		void resetConstants();
+		void resetConstants(bool addDefault = true);
 
 		void setFunctions(std::map<std::string, double(*)(double argument)> *funcs = nullptr, bool addFunctions = true);
 		void addFunction(std::string name, double(*function)(double argument));
+		void resetFunctions(bool addDefault = true);
+	    void setNewXAlias(char symb);
 	};
 
 
