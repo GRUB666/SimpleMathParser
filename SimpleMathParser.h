@@ -264,7 +264,8 @@ namespace smp //Simple Math Parser namespace
 
 				while (start_value <= max)
 				{
-					result_vector.push_back(start_value + step_value*i);
+					result_vector.push_back(this->expression.getResult(start_value));
+					start_value += step_value;
 				}
 			}
 		}

@@ -48,8 +48,9 @@ void smp::ParserSettings::InitializeFunctions(std::map<std::string, double(*)(do
 		Functions["th"] = std::tanh;
 
 		Functions["sqrt"] = std::sqrt;
-		Functions["lg"] = std::log;
+		Functions["lg"] = std::log10;
 		Functions["ln"] = [](double argument) { return std::log(argument) / std::log(E); };
+		Functions["abs"] = std::abs;
 	}
 }
 
@@ -272,24 +273,21 @@ void smp::Oper::checkBracketsCorrect()
 
 void smp::Oper::replaceIncorrectSymbols()
 {
-	char to_change_syms[2]{ ':', ',' };
+	std::string to_change_syms[3]{ ":", ",", "pi" };
 
 	for (auto var : to_change_syms)
 	{
 		int to_change = value.find(var); //Find all ':'
 		while (to_change != std::string::npos)
 		{
-			switch (var)
-			{
-			case ':':
+			if(var == ":")
 				value[to_change] = '/';
-				break;
-			case ',':
+			else if(var == ",")
 				value[to_change] = '.';
-				break;
-			}
-				
-			to_change = value.find(var);
+			else if(var == "pi" && ps->Constants.find('p') != ps->Constants.end())
+				value.replace(to_change, var.length(), "p");
+
+			to_change = value.find(var, to_change + 1);
 		}
 	}
 
