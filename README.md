@@ -1,3 +1,35 @@
+# EN-RU
+
+# EN:
+# Simple Math Parser
+
+Version 1.3
+Features:
+- Added complex functions (like trigonometry). In total, 15 functions are supported by default.
+- Now you can add your own functions to the parser very simply and without delving into my code
+
+RU:
+Easy-to-use parser for processing mathematical expressions (C ++)
+Advantages:
+- Very unpretentious to the input line (any number of spaces, multiplication signs are optional)
+- Fast enough (with repeated use, it shows itself much better than other parsers of a recursive type. Parsing is performed only once when installing a new expression)
+- Easy to expand (you can easily teach the parser to process any of your (or standard) mathematical functions)
+- Adding your own constants
+- Support for expressions with unknown x
+
+Disadvantage (but with reservation):
+Many times slower than top mathematical parsers for C ++. Functionality and extensibility strongly affect the time factor.
+I will give an example:
+Such an expression (Maxwell’s distribution of speeds) the parser considers for unimaginable 1869 microseconds if you count the total time and 181 one microsecond if you only consider the calculation time:
+4p (M / (2pRT)) ^ (3/2) * v ^ 2 * e ^ (- Mv ^ 2 / (2RT))
+Therefore, if speed is important to you, and not the ability to dynamically expand the parser, then it is better to look in the direction of other options (there are those that consider the same expressions in less than 400 nanoseconds).
+However, there is a caveat: complexity, and with it, runtime increases at approximately the same speed O (n) = sqrt (x), which means you can not be afraid for overly complex expressions, since they will not be able to jump over permissible limits.
+conversion
+
+Read all information on how to use the library in the Wiki section.
+
+
+
 # RU
 # Простой Математический Парсер (многофункциональный)
 
@@ -27,31 +59,3 @@
 
 Читайте всю информацию о том, как использовать библиотку в разделе Wiki либо же смотрите пример в main.cpp
 
-
-# EN:
-# Simple Math Parser
-
-Version 1.3
-Features:
-- Added complex functions (like trigonometry). In total, 15 functions are supported by default.
-- Now you can add your own functions to the parser very simply and without delving into my code
-
-RU:
-Easy-to-use parser for processing mathematical expressions (C ++)
-Advantages:
-- Very unpretentious to the input line (any number of spaces, multiplication signs are optional)
-- Fast enough (with repeated use, it shows itself much better than other parsers of a recursive type. Parsing is performed only once when installing a new expression)
-- Easy to expand (you can easily teach the parser to process any of your (or standard) mathematical functions)
-- Adding your own constants
-- Support for expressions with unknown x
-
-Disadvantage (but with reservation):
-Many times slower than top mathematical parsers for C ++. Functionality and extensibility strongly affect the time factor.
-I will give an example:
-Such an expression (Maxwell’s distribution of speeds) the parser considers for unimaginable 1869 microseconds if you count the total time and 181 one microsecond if you only consider the calculation time:
-4p (M / (2pRT)) ^ (3/2) * v ^ 2 * e ^ (- Mv ^ 2 / (2RT))
-Therefore, if speed is important to you, and not the ability to dynamically expand the parser, then it is better to look in the direction of other options (there are those that consider the same expressions in less than 400 nanoseconds).
-However, there is a caveat: complexity, and with it, runtime increases at approximately the same speed O (n) = sqrt (x), which means you can not be afraid for overly complex expressions, since they will not be able to jump over permissible limits.
-conversion
-
-Read all information on how to use the library in the Wiki section.
