@@ -3,7 +3,7 @@
 # EN:
 # Simple Math Parser
 
-Version 1.3
+Version 1.4.3
 Features:
 - Added complex functions (like trigonometry). In total, 15 functions are supported by default.
 - Now you can add your own functions to the parser very simply and without delving into my code
@@ -33,7 +33,7 @@ Read all information on how to use the library in the Wiki section.
 # RU
 # Простой Математический Парсер (многофункциональный)
 
-Версия 1.4 (Платиновая)
+Версия 1.4.3 (Платиновая)
 Особенности версии:
 - Теперь вы можете добавлять свои собственные функции в отдельные экземпляры парсера
 - Все константы и функции инкапсулированы в класс Oper. И измнения констант касаются лишь одного экземлпяра класса.
