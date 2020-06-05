@@ -12,49 +12,24 @@
 //My contact mail: aleksandrfurmanoa@gmail.com
 
 
-constexpr auto PI = 3.141592653589793; //Just constants;
-constexpr auto E = 2.718281828459045;
+/*Structure:
+1. Definitions of default constants (PI and E)
+2. strcut ParserSettings
+3. Abstact class Oper
+4. Interface IActionsMap
+5. Class Expression (To use)
+6. Class Multiplication_Oper (Service class)
+7. Class Number_Oper (Service class)
+8. Class Power_Oper (Service class)
+9. Class Function_Oper (Service class)
+10. Exception classes
+11. Bonus rangeClass (To use)
+*/
 
 namespace smp //Simple Math Parser namespace
 {
-	//Exception-classes----------------------------
-	enum  ExceptionType //Views of exceptions
-	{
-		IncorrectSyntax,
-		InvalidBracketsCount,
-		MathFunctionCrash,
-		ConversionError
-	};
-
-	class InvalidExpression : public std::exception //Main exception class
-	{
-	private:
-		std::string m_error;
-		ExceptionType type;
-
-	public:
-		InvalidExpression(ExceptionType tp, std::string error) : m_error(error) 
-		{
-			type = tp;
-		}
-
-		ExceptionType getExceptionType() { return type; }
-
-		const char* what() const noexcept { return m_error.c_str(); }
-	};
-
-	class RangeException : public std::exception
-	{
-	private:
-		std::string m_error;
-
-	public:
-		RangeException(std::string error) : m_error(error) {}
-
-		const char* what() const noexcept { return m_error.c_str(); }
-	};
-
-
+	constexpr auto PI = 3.141592653589793; //Just constants;
+	constexpr auto E = 2.718281828459045;
 
 
 	using Function = double(*)(double argument);
@@ -201,6 +176,117 @@ namespace smp //Simple Math Parser namespace
 	};
 
 
+
+
+	//Exception-classes----------------------------
+	enum  ExceptionType //Views of exceptions
+	{
+		E_UnexpectedError,
+		E_IncorrectSyntax,
+		E_InvalidBracketsCount,
+		E_MathFunctionCrash,
+		E_ConversionError,
+		E_IncorrectArgument,
+		E_MathError,
+		E_NameError,
+	};
+
+	class InvalidExpression : public std::exception //Main exception class
+	{
+	protected:
+		std::string m_error;
+		ExceptionType type;
+
+	public:
+		InvalidExpression(std::string error, ExceptionType tp = E_UnexpectedError) : m_error(error), type(tp) {}
+
+		ExceptionType getExceptionType() { return type; }
+
+		const char* what() const noexcept { return m_error.c_str(); }
+	};
+
+	class IncorrectSyntax : public InvalidExpression
+	{
+	public:
+		IncorrectSyntax(std::string error) : InvalidExpression(error, E_IncorrectSyntax) {}
+	};
+
+	class MathError : public InvalidExpression
+	{
+	public:
+		MathError(std::string error) : InvalidExpression(error, E_MathError) {}
+	};
+
+	class InvalidBracketsCount : public InvalidExpression
+	{
+	public:
+		InvalidBracketsCount(std::string error) : InvalidExpression(error, E_InvalidBracketsCount) {}
+	};
+
+	class ConversionError : public InvalidExpression
+	{
+	private:
+		std::string invalid_value;
+	public:
+		ConversionError(std::string error, std::string invalid_value) : InvalidExpression(error, E_ConversionError), invalid_value(invalid_value) {}
+
+		std::string getInvalidValue() { return invalid_value; }
+	};
+	
+	class MathFunctionCrash : public InvalidExpression
+	{
+	private:
+		std::string target_function;
+	public:
+		MathFunctionCrash(std::string error, std::string targ_func) : InvalidExpression(error, E_MathFunctionCrash), target_function(targ_func) {}
+
+		std::string getTargetFunction() { return target_function; }
+	};
+
+	class IncorrectArgument : public MathFunctionCrash
+	{
+	private:
+		std::string invalid_argument;
+	public:
+		IncorrectArgument(std::string error, std::string targ_func, std::string arg) : MathFunctionCrash(error, targ_func), invalid_argument(arg) {}
+
+		std::string getIncorrectArgument() { return invalid_argument; }
+	};
+	
+	class NameErrorException : public InvalidExpression
+	{
+	private:
+		char invalid_character;
+	public:
+		NameErrorException(std::string error, char letter) : InvalidExpression(error, E_NameError), invalid_character(letter) {}
+
+		char getInvalidCharacter() { return invalid_character; }
+	};
+
+	class IncorrectFunctionName : public NameErrorException
+	{
+	public:
+		IncorrectFunctionName(std::string error, char letter) : NameErrorException(error, letter) {}
+	};
+
+	class IncorrectConstantName : public NameErrorException
+	{
+	public:
+		IncorrectConstantName(std::string error, char letter) : NameErrorException(error, letter) {}
+	};
+
+	class RangeException : public std::exception
+	{
+	private:
+		std::string m_error;
+
+	public:
+		RangeException(std::string error) : m_error(error) {}
+
+		const char* what() const noexcept { return m_error.c_str(); }
+	};
+
+	//--------------------------------------
 
 
 	//BONUS!

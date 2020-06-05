@@ -2,7 +2,6 @@
 
 using namespace smp;
 
-
 //If the function is called without arguments, all constants are set by default.
 void smp::ParserSettings::InitializeConstants(std::map<char, double>* consts, bool addConstants)
 {
@@ -36,20 +35,49 @@ void smp::ParserSettings::InitializeFunctions(std::map<std::string, double(*)(do
 		Functions["ctg"] = [](double argument) { return 1 / std::tan(argument); };
 		Functions["cth"] = [](double argument) { return 1 / std::tanh(argument); };
 
+		Functions["asin"] = [](double argument)
+		{
+			if (argument < -1 || argument > 1)
+				throw IncorrectArgument("asin`s argument must be in [-1; 1]!", "asin", std::to_string(argument));
+			return std::asin(argument);
+		};
+
+		Functions["acos"] = [](double argument)
+		{
+			if (argument < -1 || argument > 1)
+				throw IncorrectArgument("acos`s argument must be in [-1; 1]!", "acos", std::to_string(argument));
+			return std::acos(argument);
+		};
+
+		Functions["lg"] = [](double argument)
+		{
+			if (argument <= 0)
+				throw IncorrectArgument("log`s argument must be positive!", "log10", std::to_string(argument));
+			return std::log10(argument);
+		};
+
+		Functions["ln"] = [](double argument) 
+		{ 
+			if (argument <= 0)
+				throw IncorrectArgument("log`s argument must be positive!", "ln", std::to_string(argument));
+			return std::log(argument) / std::log(E);
+		};
+
+		Functions["sqrt"] = [](double argument)
+		{
+			if (argument < 0)
+				throw IncorrectArgument("sqrt`s argument can`t be less zero!", "sqrt", std::to_string(argument));
+			return std::sqrt(argument);
+		};
+
 		Functions["sin"] = std::sin;
 		Functions["cos"] = std::cos;
 		Functions["tan"] = std::tan;
-		Functions["asin"] = std::asin;
-		Functions["acos"] = std::acos;
 		Functions["arctg"] = std::atan;
-
 		Functions["sh"] = std::sinh;
 		Functions["ch"] = std::cosh;
 		Functions["th"] = std::tanh;
-
-		Functions["sqrt"] = std::sqrt;
-		Functions["lg"] = std::log10;
-		Functions["ln"] = [](double argument) { return std::log(argument) / std::log(E); };
+		Functions["log"] = Functions["ln"];
 		Functions["abs"] = std::abs;
 	}
 }
@@ -75,7 +103,7 @@ Function smp::ParserSettings::getFunctionFromString(std::string func_name)
 	auto it = Functions.find(func_name);
 
 	if (it == Functions.end())
-		throw InvalidExpression(MathFunctionCrash, "Something went wrong with function. Expression isn`t correct!");
+		throw MathFunctionCrash("Function " + func_name + " was not declared! Expression isn`t correct!", func_name);
 
 	return Functions[func_name];
 }
@@ -130,6 +158,9 @@ bool smp::Oper::isServiceSymbol(char symb)
 
 void smp::Oper::CutUnnecessary() //Whitespaces, special symbols and unreadable symbols like '?'
 {
+	if (value[0] == '+')
+		value.erase(0);
+
 	for (int i = 0; i < value.size(); i++)
 	{
 		if (!isLetter(value[i]) && !isDigit(value[i]) && !isServiceSymbol(value[i]))
@@ -267,7 +298,7 @@ void smp::Oper::checkBracketsCorrect()
 	}
 
 	if (opened_count != 0)
-		throw InvalidExpression(InvalidBracketsCount, "Brackets count is invalid. Expression isn`t correct!");
+		throw InvalidBracketsCount("Brackets count is invalid. Expression isn`t correct!");
 }
 
 
@@ -301,6 +332,10 @@ void smp::Oper::setConstants(std::map<char, double>* consts, bool addConstants)
 
 void smp::Oper::addConstant(char symb, double value)
 {
+	std::string tmp_str{ symb };
+	if (!isLetter(symb))
+		throw IncorrectConstantName("Unresolved character (" + tmp_str + ") in name of constant: " + symb, symb);
+
 	ps->Constants.emplace(symb, value);
 }
 
@@ -311,6 +346,12 @@ void smp::Oper::setFunctions(std::map<std::string, double(*)(double argument)>* 
 
 void smp::Oper::addFunction(std::string name, double(*function)(double argument))
 {
+	for (auto var : name)
+	{
+		std::string tmp_str { var };
+		if (!isLetter(var))
+			throw IncorrectFunctionName("Unresolved character (" + tmp_str + ") in name of function: " + name, var);
+	}
 	ps->Functions[name] = function;
 }
 
@@ -438,7 +479,13 @@ double Multiplication_Oper::getResult(double x)
 		if (actions[i] == '*')
 			result *= sub_opers[i]->getResult(x);
 		else
-			result /= sub_opers[i]->getResult(x);
+		{
+			double to_divide = sub_opers[i]->getResult(x);
+			if (to_divide == 0)
+				throw MathError("There is dividing by zero! Expression isn`t correct!");
+
+			result /= to_divide;
+		}
 	}
 
 	return result;
@@ -643,6 +690,12 @@ void smp::Multiplication_Oper::updateSubOpers()
 				{
 					if ((value[i] == '*' || value[i] == '/' || isLetter(value[i])) && i < value.size() - 1 && value[i + 1] != '^')
 					{
+						if (isLetter(value[i]))
+						{
+							new_string.push_back(value[i]);
+							i++;
+						}
+
 						new_string.push_back(value[i]);
 						sub_opers.push_back(std::shared_ptr<Oper>(new Power_Oper(new_string, ps)));
 						break;
@@ -726,8 +779,14 @@ void smp::Multiplication_Oper::updateSubOpers()
 					{
 						if ((value[i] == '*' || value[i] == '/' || isLetter(value[i])) && i < value.size() - 1 && value[i + 1] != '^')
 						{
-							new_string.push_back(value[i]);
+							if (isLetter(value[i]))
+							{
+								new_string.push_back(value[i]);
+								i++;
+							}
+							
 							sub_opers.push_back(std::shared_ptr<Oper>(new Power_Oper(new_string, ps)));
+							
 							break;
 						}
 					}
@@ -757,7 +816,23 @@ Power_Oper::Power_Oper(std::string value, std::shared_ptr<ParserSettings> ps) : 
 
 double Power_Oper::getResult(double x)
 {
-	return pow(sub_opers.at(0)->getResult(x), sub_opers.at(1)->getResult(x));
+	double base = sub_opers.at(0)->getResult(x);
+	double power = sub_opers.at(1)->getResult(x);
+	double result = pow(base, power);
+
+	if (std::isnan(result))
+	{
+		double cel;
+		if (modf(1 / power, &cel) != 0)
+			throw MathError("Incorrect Exponentiation! Base: " + std::to_string(base) + " | Power: " + std::to_string(power));
+
+		if((int)(1 / power) % 2 == 0)
+			throw MathError("Incorrect Exponentiation! Base: " + std::to_string(base) + " | Power: " + std::to_string(power));
+
+		result = -pow(-base, power);
+	}
+	
+	return result;
 }
 
 void smp::Power_Oper::setExpression(std::string str)
@@ -840,7 +915,7 @@ double Number::getResult(double x)
 
 			catch (std::invalid_argument&)
 			{
-				throw InvalidExpression(ConversionError, "stof() couldn`t convert string to double. Expression isn`t correct!");
+				throw ConversionError("stof() couldn`t convert " + value + " to double. Expression isn`t correct!", value);
 			}
 		}
 			
@@ -848,7 +923,7 @@ double Number::getResult(double x)
 
 	else
 	{
-		throw InvalidExpression(IncorrectSyntax, "String was empty. Expression isn`t correct!");
+		throw IncorrectSyntax("String was empty. Expression isn`t correct!");
 	}
 }
 
