@@ -31,13 +31,16 @@ namespace smp //Simple Math Parser namespace
 	constexpr auto PI = 3.141592653589793; //Just constants;
 	constexpr auto E = 2.718281828459045;
 
+	struct FunctionWrapper;
+	class Expression;
 
 	using Function = double(*)(double argument);
 
+	typedef std::map<std::string, FunctionWrapper> FunctionsMap;
 	struct ParserSettings
 	{
 		std::map<char, double> Constants;
-		std::map<std::string, double(*)(double argument)> Functions;
+		FunctionsMap Functions;
 		char x_alias = 'x';
 
 
@@ -48,15 +51,16 @@ namespace smp //Simple Math Parser namespace
 		}
 
 		void InitializeConstants(std::map<char, double> *consts = nullptr, bool addConstants = true);
-		void InitializeFunctions(std::map<std::string, double(*)(double argument)> *funcs = nullptr, bool addFunctions = true);
+		void InitializeFunctions(FunctionsMap *funcs = nullptr, bool addFunctions = true);
 
+		double getFunctionValue(std::string name, double argument);
 		double getNumberFromLetter(char symb, double x_value);
-		Function getFunctionFromString(std::string func_name);
+		//Function getFunctionFromString(std::string func_name);
 	};
-
 
 	class Oper //Base abstract class
 	{
+
 	private:
 		void CutUnnecessary();
 		void FunctionsMarker();
@@ -89,10 +93,13 @@ namespace smp //Simple Math Parser namespace
 		double getXValue() { return x_value; }
 		void setConstants(std::map<char, double> *consts = nullptr, bool addConstants = true);
 		void addConstant(char symb, double value);
+		void deleteConstant(char name, bool isThrow = false);
 		void resetConstants(bool addDefault = true);
 
-		void setFunctions(std::map<std::string, double(*)(double argument)> *funcs = nullptr, bool addFunctions = true);
-		void addFunction(std::string name, double(*function)(double argument));
+		void setFunctions(FunctionsMap *funcs = nullptr, bool addFunctions = true);
+		void addFunction(std::string name, Function function);
+		void addFunction(std::string name, Expression &exp, bool save_parser_setting = false);
+		void deleteFunction(std::string name, bool isThrow = false);
 		void resetFunctions(bool addDefault = true);
 	    void setNewXAlias(char symb);
 	};
@@ -114,11 +121,40 @@ namespace smp //Simple Math Parser namespace
 		void updateSubOpers() override;
 	public:
 		Expression(std::string value = "", bool toBePrepared = true, std::shared_ptr<ParserSettings> ps = nullptr);
+		Expression(Expression& exp);
+
 
 		double getResult(double x) override;
 		double getResult() override { return getResult(x_value); }
 		void setExpression(std::string str = "") override;
 	};
+
+	struct FunctionWrapper
+	{
+		Function function_ptr;
+		std::shared_ptr<Expression> exp_ptr;
+
+		FunctionWrapper(Function func) : function_ptr(func), exp_ptr(nullptr) {}
+
+		FunctionWrapper() {}
+
+		FunctionWrapper(std::shared_ptr<Expression> ptr) : exp_ptr(ptr) {}
+
+		FunctionWrapper(const FunctionWrapper& copy)
+		{
+			this->exp_ptr = std::shared_ptr<Expression>(new Expression(*copy.exp_ptr));
+			this->function_ptr = copy.function_ptr;
+		}
+
+		double getCalculatedValue(double argument)
+		{
+			if (exp_ptr != nullptr)
+				return exp_ptr->getResult(argument);
+
+			return function_ptr(argument);
+		}
+	};
+	
 
 
 
@@ -256,23 +292,29 @@ namespace smp //Simple Math Parser namespace
 	class NameErrorException : public InvalidExpression
 	{
 	private:
-		char invalid_character;
+		std::string invalid_character;
 	public:
-		NameErrorException(std::string error, char letter) : InvalidExpression(error, E_NameError), invalid_character(letter) {}
+		NameErrorException(std::string error, std::string letter) : InvalidExpression(error, E_NameError), invalid_character(letter) {}
 
-		char getInvalidCharacter() { return invalid_character; }
+		std::string getInvalidCharacter() { return invalid_character; }
 	};
 
 	class IncorrectFunctionName : public NameErrorException
 	{
 	public:
-		IncorrectFunctionName(std::string error, char letter) : NameErrorException(error, letter) {}
+		IncorrectFunctionName(std::string error, std::string letter) : NameErrorException(error, letter) {}
 	};
 
 	class IncorrectConstantName : public NameErrorException
 	{
 	public:
-		IncorrectConstantName(std::string error, char letter) : NameErrorException(error, letter) {}
+		IncorrectConstantName(std::string error, std::string letter) : NameErrorException(error, letter) {}
+	};
+
+	class IncorrectXAliasName : public NameErrorException
+	{
+	public:
+		IncorrectXAliasName(std::string error, std::string letter) : NameErrorException(error, letter) {}
 	};
 
 	class RangeException : public std::exception

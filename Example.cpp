@@ -15,13 +15,26 @@ double Factorial(double x);
 int main()
 {
 	smp::Expression myExp; //myExp instance
+	smp::Expression giperbola_exp("1 / x"); //NEW!!! We are about to add this function in myExp like we do same with Factorial and gamma 
 	
 	try //Try to add own constants and functions
 	{
-		myExp.addConstant('g', 9.87);
-		myExp.addConstant('p', 1.64);
+		myExp.addConstant('g', 9.87); //Adding new constants
+		myExp.addConstant('h', 1.64);
+
 		myExp.addFunction("fact", Factorial); //Adding factorial function
 		myExp.addFunction("G", gamma); //Adding gamma function
+
+		myExp.addFunction("giperbola", giperbola_exp); //Adding giperbola expression! 
+		//Also there is the third default parameter "save_origin_parser_setting" it`s false as default. 
+		//That means all functions and constants of myExp will be written in giperbola_exp (common namespace)
+
+		smp::Expression r("x^x");
+		myExp.addFunction("exp", r);
+
+		myExp.deleteFunction("giperbola"); //Example of deleting function and constant
+		myExp.deleteConstant('h', true); //There are two parameters: "name" and "isThrow", as defeault isThrow = false
+		//If isTrow = true, you would get exception when trying to delete function or constant that doesn`t exist
 	}
 
 	catch (smp::IncorrectFunctionName& exp) //That is throwed if you add a function with incorrect name (only letters!)
@@ -39,11 +52,12 @@ int main()
 		try //Waiting for input of an expression and trying to calculate this
 		{
 			string str;
-			cout << "Input expression: ";
-			getline(cin, str);
+			cout << "Input expression: "; //Now parser can understand 16 standart math functions (like cos) and three own ones (Factorial, Gamma and Giperbola)
+			getline(cin, str); //Also parser can understand 2 standart constants and 2 own ones
 			cout << "\n\n";
 			myExp.setExpression(str);
-			cout << "f(1) = " << myExp.getExpression() << " = " << myExp.getResult(1); //Just use 1 as default value of x
+
+			cout << "f(1) = " << myExp.getExpression() << " = " << myExp.getResult(2); //Just use 1 as default value of x
 		}
 
 		/*catch (smp::InvalidExpression& exp) //Base kind of any excecption (parent class for all exceptions in smp)
