@@ -70,6 +70,7 @@ namespace smp //Simple Math Parser namespace
 		std::string value;
 		std::shared_ptr<ParserSettings> ps;
 		double x_value;
+		std::string origin_string;
 
 		Oper(std::string value = "", std::shared_ptr<ParserSettings> ps = nullptr);
 		void prepareString();
@@ -98,9 +99,10 @@ namespace smp //Simple Math Parser namespace
 
 		void setFunctions(FunctionsMap *funcs = nullptr, bool addFunctions = true);
 		void addFunction(std::string name, Function function);
-		void addFunction(std::string name, Expression &exp, bool save_parser_setting = false);
+		void addFunction(std::string name, Expression &exp);
 		void deleteFunction(std::string name, bool isThrow = false);
 		void resetFunctions(bool addDefault = true);
+		void setParserSettings(ParserSettings& se);
 	    void setNewXAlias(char symb);
 	};
 
@@ -277,6 +279,17 @@ namespace smp //Simple Math Parser namespace
 		MathFunctionCrash(std::string error, std::string targ_func) : InvalidExpression(error, E_MathFunctionCrash), target_function(targ_func) {}
 
 		std::string getTargetFunction() { return target_function; }
+	};
+
+	class RecursionException : public MathFunctionCrash
+	{
+	private:
+		Oper* exp1;
+		Expression* exp2;
+	public:
+		RecursionException(std::string error, std::string targ_func, Oper* exp1, Expression* exp2) : MathFunctionCrash(error, targ_func), exp1(exp1), exp2(exp2) {}
+		Oper* getExp1() { return exp1; }
+		Expression* getExp2() { return exp2; }
 	};
 
 	class IncorrectArgument : public MathFunctionCrash

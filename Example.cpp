@@ -17,7 +17,7 @@ int main()
 	smp::Expression myExp; //myExp instance
 	smp::Expression giperbola_exp("1 / x"); //NEW!!! We are about to add this function in myExp like we do same with Factorial and gamma 
 	
-	try //Try to add own constants and functions
+	try //Try to add own constants and functions (also we try to change alias of variable)
 	{
 		myExp.addConstant('g', 9.87); //Adding new constants
 		myExp.addConstant('h', 1.64);
@@ -29,12 +29,15 @@ int main()
 		//Also there is the third default parameter "save_origin_parser_setting" it`s false as default. 
 		//That means all functions and constants of myExp will be written in giperbola_exp (common namespace)
 
-		smp::Expression r("x^x");
-		myExp.addFunction("exp", r);
-
 		myExp.deleteFunction("giperbola"); //Example of deleting function and constant
 		myExp.deleteConstant('h', true); //There are two parameters: "name" and "isThrow", as defeault isThrow = false
 		//If isTrow = true, you would get exception when trying to delete function or constant that doesn`t exist
+
+
+		myExp.setNewXAlias('y'); //Also we can change alias of variable in expression (Default is 'x')
+		myExp.setNewXAlias('a');
+		myExp.setNewXAlias('z'); //Now the variable in myExp is z
+		myExp.setNewXAlias('x'); //And now this is a default value
 	}
 
 	catch (smp::IncorrectFunctionName& exp) //That is throwed if you add a function with incorrect name (only letters!)
@@ -47,17 +50,23 @@ int main()
 		cout << exp.what();
 	}
 
+	catch (smp::IncorrectXAliasName& exp) //That is throwed if you change alias of x not correctly (only letters!)
+	{
+		cout << exp.what();
+	}
+
+	myExp.setXValue(4); //We can set default variable value
+
 	while (true) //Main loop
 	{
 		try //Waiting for input of an expression and trying to calculate this
 		{
 			string str;
-			cout << "Input expression: "; //Now parser can understand 16 standart math functions (like cos) and three own ones (Factorial, Gamma and Giperbola)
+			cout << "Input expression: "; //Now parser can understand 16 standart math functions (like cos) and 2 own ones (Factorial, Gamma, Giperbola was deleted)
 			getline(cin, str); //Also parser can understand 2 standart constants and 2 own ones
 			cout << "\n\n";
 			myExp.setExpression(str);
-
-			cout << "f(1) = " << myExp.getExpression() << " = " << myExp.getResult(2); //Just use 1 as default value of x
+			cout << "f(" + std::to_string(myExp.getXValue()) + ") = " << myExp.getExpression() << " = " << myExp.getResult(); //Just use a default value of variable
 		}
 
 		/*catch (smp::InvalidExpression& exp) //Base kind of any excecption (parent class for all exceptions in smp)
@@ -73,6 +82,11 @@ int main()
 		catch (smp::MathError& exp) //That throwed if you break math rules: (-4) ^ (1 / 4) or 1 / 0
 		{
 			cout << exp.what();
+		}
+
+		catch (smp::RecursionException& exp) //That throwed if your expression uses other expression that has reference to first one
+		{
+			cout << exp.what(); //That checks in addFunction()
 		}
 
 		catch (smp::InvalidBracketsCount& exp) //That`s gonna throw InvalidBracketsCount: ((2 + 1) * x

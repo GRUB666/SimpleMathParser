@@ -59,7 +59,7 @@ void smp::ParserSettings::InitializeFunctions(FunctionsMap *funcs, bool addFunct
 		Functions["ln"] = (Function)[](double argument)
 		{ 
 			if (argument <= 0)
-				throw IncorrectArgument("log`s argument must be positive!", "ln", std::to_string(argument));
+				throw IncorrectArgument("ln`s argument must be positive!", "ln", std::to_string(argument));
 			return std::log(argument) / std::log(E);
 		};
 
@@ -79,6 +79,9 @@ void smp::ParserSettings::InitializeFunctions(FunctionsMap *funcs, bool addFunct
 		Functions["th"] = std::tanh;
 		Functions["log"] = Functions["ln"];
 		Functions["abs"] = std::abs;
+		Functions["floor"] = std::floor;
+		Functions["ceil"] = std::ceil;
+		Functions["erf"] = std::erf;
 	}
 }
 
@@ -125,6 +128,7 @@ double smp::ParserSettings::getNumberFromLetter(char symb, double x_value)
 //Oper definintions-------------
 Oper::Oper(std::string value, std::shared_ptr<ParserSettings> ps)
 {
+	origin_string = value;
 	this->value = value;
 	
 	if (ps == nullptr)
@@ -220,6 +224,7 @@ void smp::Oper::FunctionsMarker()
 		}
 	}
 }
+
 
 void smp::Oper::prepareString()
 {
@@ -334,13 +339,12 @@ void smp::Oper::replaceIncorrectSymbols()
 			to_change = value.find(var, to_change + 1);
 		}
 	}
-
-	
 }
 
 void smp::Oper::setConstants(std::map<char, double>* consts, bool addConstants)
 {
 	ps->InitializeConstants(consts, addConstants);
+	setExpression(origin_string);
 }
 
 void smp::Oper::addConstant(char symb, double value)
@@ -350,6 +354,7 @@ void smp::Oper::addConstant(char symb, double value)
 		throw IncorrectConstantName("Unresolved character (" + tmp_str + ") in name of constant: " + symb, std::to_string(symb));
 
 	ps->Constants.emplace(symb, value);
+	setExpression(origin_string);
 }
 
 void smp::Oper::deleteConstant(char name, bool isThrow)
@@ -359,11 +364,13 @@ void smp::Oper::deleteConstant(char name, bool isThrow)
 		throw IncorrectConstantName("There is no constant to delete with name: " + name, std::to_string(name));
 
 	ps->Constants.erase(it);
+	setExpression(origin_string);
 }
 
 void smp::Oper::setFunctions(FunctionsMap *funcs, bool addFunctions)
 {
 	ps->InitializeFunctions(funcs, addFunctions);
+	setExpression(origin_string);
 }
 
 void smp::Oper::addFunction(std::string name, Function function)
@@ -375,18 +382,27 @@ void smp::Oper::addFunction(std::string name, Function function)
 			throw IncorrectFunctionName("Unresolved character (" + tmp_str + ") in name of function: " + name, std::to_string(var));
 	}
 	ps->Functions[name] = function;
+	setExpression(origin_string);
 }
 
-void smp::Oper::addFunction(std::string name, Expression & exp, bool save_origin_parser_setting)
+void smp::Oper::addFunction(std::string name, Expression & exp)
 {
+	if (this == &exp)
+		throw RecursionException("It is about to be a recursive function " + name + "(" + this->ps->x_alias + ")! addFunction can`t get an instance equals this", name, this, &exp);
+
+	for (auto &var : exp.ps->Functions)
+	{
+		if(var.second.exp_ptr != nullptr)
+			if (var.second.exp_ptr->ps == this->ps)
+				throw RecursionException("It is about to be a recursive function " + name + "(" + this->ps->x_alias + ")! Expression has reference to this object", name, this, var.second.exp_ptr.get());
+	}
+
 	std::shared_ptr<Expression> internal_exp = std::shared_ptr<Expression>(new Expression);
 
-	if (save_origin_parser_setting)
-		*internal_exp = Expression(exp.getExpression(), false);
-	else
-		*internal_exp = Expression(exp.getExpression(), false, exp.ps);
+	*internal_exp = Expression(exp.getExpression(), false, exp.ps); 
 
 	ps->Functions[name] = internal_exp;
+	setExpression(origin_string);
 }
 
 void smp::Oper::deleteFunction(std::string name, bool isThrow)
@@ -396,22 +412,28 @@ void smp::Oper::deleteFunction(std::string name, bool isThrow)
 		throw IncorrectFunctionName("There is no function to delete with name: " + name, name);
 
 	ps->Functions.erase(it);
+	setExpression(origin_string);
 }
 
 void smp::Oper::resetConstants(bool addDefault)
 {
-	if (addDefault)
-		ps->InitializeConstants();
-	else
-		ps->Constants.clear();
+	ps->InitializeConstants(nullptr, addDefault);
+
+	setExpression(origin_string);
 }
 
 void smp::Oper::resetFunctions(bool addDefault)
 {
-	if (addDefault)
-		ps->InitializeFunctions();
-	else
-		ps->Constants.clear();
+	ps->InitializeFunctions(nullptr, addDefault);
+
+	setExpression(origin_string);
+}
+
+void smp::Oper::setParserSettings(ParserSettings & se)
+{
+	ps->Constants = se.Constants;
+	ps->Functions = se.Functions;
+	setExpression(origin_string);
 }
 
 smp::Oper::~Oper()
@@ -425,6 +447,7 @@ smp::Oper::~Oper()
 //Expression defenitions----
 Expression::Expression(std::string value, bool toBePrepared, std::shared_ptr<ParserSettings> ps) : Oper(value, ps)
 { 	
+	origin_string = value;
 	checkBracketsCorrect();
 
 	if (toBePrepared)
@@ -444,7 +467,8 @@ double Expression::getResult(double x)
 	int counter = 0;
 	int k = 1;
 
-	for (auto& var : sub_opers) 
+
+	for (auto& var : sub_opers)
 	{
 		if (actions[counter] == '+')
 			k = 1;
@@ -455,11 +479,14 @@ double Expression::getResult(double x)
 		counter++;
 	}
 
+	
+
 	return result;
 }
 
 void smp::Expression::setExpression(std::string str)
 {
+	origin_string = str;
 	this->value = str;
 	checkBracketsCorrect();
 	prepareString();
@@ -512,6 +539,7 @@ void smp::Expression::updateSubOpers()
 		sub_opers.push_back(std::shared_ptr<Oper>(new Multiplication_Oper(new_string, ps)));
 	}
 }
+
 //------------------------
 
 
