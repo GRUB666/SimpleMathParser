@@ -22,7 +22,7 @@ void smp::ParserSettings::InitializeConstants(std::map<char, double>* consts, bo
 	}
 }
 
-void smp::ParserSettings::InitializeFunctions(std::map<std::string, double(*)(double argument)> *funcs, bool addFunctions)
+void smp::ParserSettings::InitializeFunctions(FunctionsMap *funcs, bool addFunctions)
 {
 	Functions.clear();
 
@@ -31,39 +31,39 @@ void smp::ParserSettings::InitializeFunctions(std::map<std::string, double(*)(do
 
 	if (addFunctions) //Standart functions
 	{
-		Functions["arcctg"] = [](double argument) { return std::atan(1 / argument); };
-		Functions["ctg"] = [](double argument) { return 1 / std::tan(argument); };
-		Functions["cth"] = [](double argument) { return 1 / std::tanh(argument); };
+		Functions["arcctg"] = (Function)[](double argument) { return std::atan(1 / argument); };
+		Functions["ctg"] = (Function)[](double argument) { return 1 / std::tan(argument); };
+		Functions["cth"] = (Function)[](double argument) { return 1 / std::tanh(argument); };
 
-		Functions["asin"] = [](double argument)
+		Functions["asin"] = (Function)[](double argument)
 		{
 			if (argument < -1 || argument > 1)
 				throw IncorrectArgument("asin`s argument must be in [-1; 1]!", "asin", std::to_string(argument));
 			return std::asin(argument);
 		};
 
-		Functions["acos"] = [](double argument)
+		Functions["acos"] = (Function)[](double argument)
 		{
 			if (argument < -1 || argument > 1)
 				throw IncorrectArgument("acos`s argument must be in [-1; 1]!", "acos", std::to_string(argument));
 			return std::acos(argument);
 		};
 
-		Functions["lg"] = [](double argument)
+		Functions["lg"] = (Function)[](double argument)
 		{
 			if (argument <= 0)
 				throw IncorrectArgument("log`s argument must be positive!", "log10", std::to_string(argument));
 			return std::log10(argument);
 		};
 
-		Functions["ln"] = [](double argument) 
+		Functions["ln"] = (Function)[](double argument)
 		{ 
 			if (argument <= 0)
 				throw IncorrectArgument("log`s argument must be positive!", "ln", std::to_string(argument));
 			return std::log(argument) / std::log(E);
 		};
 
-		Functions["sqrt"] = [](double argument)
+		Functions["sqrt"] = (Function)[](double argument)
 		{
 			if (argument < 0)
 				throw IncorrectArgument("sqrt`s argument can`t be less zero!", "sqrt", std::to_string(argument));
@@ -82,6 +82,16 @@ void smp::ParserSettings::InitializeFunctions(std::map<std::string, double(*)(do
 	}
 }
 
+double smp::ParserSettings::getFunctionValue(std::string name, double argument)
+{
+	auto it = Functions.find(name);
+	
+	if (it == Functions.end())
+		throw MathFunctionCrash("Function " + name + " was not declared! Expression isn`t correct!", name);
+	
+	return Functions[name].getCalculatedValue(argument);
+}
+
 double smp::ParserSettings::getNumberFromLetter(char symb, double x_value)
 {
 	if (symb != x_alias)
@@ -98,15 +108,15 @@ double smp::ParserSettings::getNumberFromLetter(char symb, double x_value)
 	return 0.0;
 }
 
-Function smp::ParserSettings::getFunctionFromString(std::string func_name)
-{
-	auto it = Functions.find(func_name);
-
-	if (it == Functions.end())
-		throw MathFunctionCrash("Function " + func_name + " was not declared! Expression isn`t correct!", func_name);
-
-	return Functions[func_name];
-}
+//Function smp::ParserSettings::getFunctionFromString(std::string func_name)
+//{
+//	auto it = Functions.find(func_name);
+//
+//	if (it == Functions.end())
+//		throw MathFunctionCrash("Function " + func_name + " was not declared! Expression isn`t correct!", func_name);
+//
+//	return Functions[func_name];
+//}
 
 
 
@@ -129,6 +139,9 @@ Oper::Oper(std::string value, std::shared_ptr<ParserSettings> ps)
 
 void smp::Oper::setNewXAlias(char symb)
 {
+	if (!isLetter(symb))
+		throw IncorrectXAliasName("Incorrect x alias: " + symb, std::to_string(symb));
+	
 	ps->x_alias = symb;
 }
 
@@ -334,25 +347,55 @@ void smp::Oper::addConstant(char symb, double value)
 {
 	std::string tmp_str{ symb };
 	if (!isLetter(symb))
-		throw IncorrectConstantName("Unresolved character (" + tmp_str + ") in name of constant: " + symb, symb);
+		throw IncorrectConstantName("Unresolved character (" + tmp_str + ") in name of constant: " + symb, std::to_string(symb));
 
 	ps->Constants.emplace(symb, value);
 }
 
-void smp::Oper::setFunctions(std::map<std::string, double(*)(double argument)>* funcs, bool addFunctions)
+void smp::Oper::deleteConstant(char name, bool isThrow)
+{
+	auto it = ps->Constants.find(name);
+	if (it == ps->Constants.end() && isThrow)
+		throw IncorrectConstantName("There is no constant to delete with name: " + name, std::to_string(name));
+
+	ps->Constants.erase(it);
+}
+
+void smp::Oper::setFunctions(FunctionsMap *funcs, bool addFunctions)
 {
 	ps->InitializeFunctions(funcs, addFunctions);
 }
 
-void smp::Oper::addFunction(std::string name, double(*function)(double argument))
+void smp::Oper::addFunction(std::string name, Function function)
 {
 	for (auto var : name)
 	{
 		std::string tmp_str { var };
 		if (!isLetter(var))
-			throw IncorrectFunctionName("Unresolved character (" + tmp_str + ") in name of function: " + name, var);
+			throw IncorrectFunctionName("Unresolved character (" + tmp_str + ") in name of function: " + name, std::to_string(var));
 	}
 	ps->Functions[name] = function;
+}
+
+void smp::Oper::addFunction(std::string name, Expression & exp, bool save_origin_parser_setting)
+{
+	std::shared_ptr<Expression> internal_exp = std::shared_ptr<Expression>(new Expression);
+
+	if (save_origin_parser_setting)
+		*internal_exp = Expression(exp.getExpression(), false);
+	else
+		*internal_exp = Expression(exp.getExpression(), false, exp.ps);
+
+	ps->Functions[name] = internal_exp;
+}
+
+void smp::Oper::deleteFunction(std::string name, bool isThrow)
+{
+	auto it = ps->Functions.find(name);
+	if (it == ps->Functions.end() && isThrow)
+		throw IncorrectFunctionName("There is no function to delete with name: " + name, name);
+
+	ps->Functions.erase(it);
 }
 
 void smp::Oper::resetConstants(bool addDefault)
@@ -388,6 +431,11 @@ Expression::Expression(std::string value, bool toBePrepared, std::shared_ptr<Par
 		prepareString();
 
 	updateSubOpers();
+}
+
+smp::Expression::Expression(Expression & exp)
+{
+	*this = Expression(exp.getExpression(), false, exp.ps);
 }
 
 double Expression::getResult(double x)
@@ -959,7 +1007,7 @@ double smp::Function_Oper::getResult(double x) //You can add your functions ther
 			
 	}
 
-	return ps->getFunctionFromString(func_string)(sub_opers[0]->getResult(x));
+	return ps->getFunctionValue(func_string, sub_opers[0]->getResult(x));
 }
 
 void smp::Function_Oper::updateSubOpers()
@@ -977,5 +1025,3 @@ void smp::Function_Oper::updateSubOpers()
 
 	sub_opers.push_back(std::shared_ptr<Oper>(new Expression(argument, false, ps)));
 }
-
-
