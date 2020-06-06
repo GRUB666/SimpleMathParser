@@ -1,40 +1,45 @@
 # EN-RU
 
-# EN:
-# Simple Math Parser
+# RU
+# Simple Mathematical Parser (multifunctional)
 
-Version 1.4.3
-Features:
-- Added complex functions (like trigonometry). In total, 15 functions are supported by default.
-- Now you can add your own functions to the parser very simply and without delving into my code
+Version 1.5 (Gold)
+Version Features:
+- expression expression
+- Ability to remove constants and functions
+- You can add your own functions to individual instances of the parser.
+- All constants and functions are encapsulated in the Oper class. And the changes in the constants concern only one instance of the class.
+- The code has been translated to smart pointers (to ensure no leaks)
 
-RU:
-Easy-to-use parser for processing mathematical expressions (C ++)
-Advantages:
-- Very unpretentious to the input line (any number of spaces, multiplication signs are optional)
-- Fast enough (with repeated use, it shows itself much better than other parsers of a recursive type. Parsing is performed only once when installing a new expression)
-- Easy to expand (you can easily teach the parser to process any of your (or standard) mathematical functions)
+Parser for processing mathematical expressions (C ++)
+
+* Advantages:
+- Any number of spaces, multiplication signs are optional)
+- Fast enough (when used repeatedly, it shows that it is better than other parsers of a recursive type.
+- Easily expand math functions
 - Adding your own constants
 - Support for expressions with unknown x
 
 Disadvantage (but with reservation):
 Many times slower than top mathematical parsers for C ++. Functionality and extensibility strongly affect the time factor.
 I will give an example:
-Such an expression (Maxwell’s distribution of speeds) the parser considers for unimaginable 1869 microseconds if you count the total time and 181 one microsecond if you only consider the calculation time:
+Parser believes that for the unimaginable microseconds of 1869, if you consider that all the time and 181 are one microsecond, if you count only the calculation time:
 4p (M / (2pRT)) ^ (3/2) * v ^ 2 * e ^ (- Mv ^ 2 / (2RT))
-Therefore, if speed is important to you, and not the ability to dynamically expand the parser, then it is better to look in the direction of other options (there are those that consider the same expressions in less than 400 nanoseconds).
-However, there is a caveat: complexity, and with it, runtime increases at approximately the same speed O (n) = sqrt (x), which means you can not be afraid for overly complex expressions, since they will not be able to jump over permissible limits.
-conversion
+This means that it is the speed, and not the ability to dynamically expand the parser, to better look in the direction of other options (there are those that believe that the same expressions are less than 400 units).
+However, there is a condition: complexity, as well as time and execution time, increase at about this speed.
 
-Read all information on how to use the library in the Wiki section.
+
+Read all the information on how to use the library in the Wiki section or see the example in main.cpp
 
 
 
 # RU
 # Простой Математический Парсер (многофункциональный)
 
-Версия 1.4.3 (Платиновая)
+Версия 1.5 (Золотая)
 Особенности версии:
+- Теперь можно добавлять в качестве функций отдельные выражение Expression
+- Возможность удаления констант и функций
 - Теперь вы можете добавлять свои собственные функции в отдельные экземпляры парсера
 - Все константы и функции инкапсулированы в класс Oper. И измнения констант касаются лишь одного экземлпяра класса.
 - Код был переведён на умные указатели (для обеспечения отсутствия утечек)
