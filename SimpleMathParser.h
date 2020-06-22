@@ -37,9 +37,11 @@ namespace smp //Simple Math Parser namespace
 	using Function = double(*)(double argument);
 
 	typedef std::map<std::string, FunctionWrapper> FunctionsMap;
+	typedef std::map<char, double> ConstantsMap;
+
 	struct ParserSettings
 	{
-		std::map<char, double> Constants;
+		ConstantsMap Constants;
 		FunctionsMap Functions;
 		char x_alias = 'x';
 
@@ -55,7 +57,6 @@ namespace smp //Simple Math Parser namespace
 
 		double getFunctionValue(std::string name, double argument);
 		double getNumberFromLetter(char symb, double x_value);
-		//Function getFunctionFromString(std::string func_name);
 	};
 
 	class Oper //Base abstract class
@@ -77,33 +78,38 @@ namespace smp //Simple Math Parser namespace
 		void clearSubOpers();
 		void checkBracketsCorrect();
 		void replaceIncorrectSymbols();
-		bool isLetter(char symb);
-		bool isDigit(char symb);
-		bool isServiceSymbol(char symb);
+		static bool isLetter(char symb);
+		static bool isDigit(char symb);
+		static bool isServiceSymbol(char symb);
 
 		virtual ~Oper();
+		virtual void updateSubOpers() = 0;
 
 	public:
 		virtual double getResult(double x) = 0;
 		virtual double getResult() { return 1; }
 		virtual void setExpression(std::string str = "") = 0;
-		virtual void updateSubOpers() = 0;
-
+		
 		std::string getExpression() { return this->value; }
+		std::string getOriginalExpression() { return this->origin_string; }
 		void setXValue(double x) { x_value = x; }
 		double getXValue() { return x_value; }
-		void setConstants(std::map<char, double> *consts = nullptr, bool addConstants = true);
+		void setConstants(ConstantsMap *consts = nullptr, bool addConstants = true);
+		ConstantsMap getConstants();
 		void addConstant(char symb, double value);
 		void deleteConstant(char name, bool isThrow = false);
 		void resetConstants(bool addDefault = true);
 
 		void setFunctions(FunctionsMap *funcs = nullptr, bool addFunctions = true);
+		FunctionsMap getFunctions();
 		void addFunction(std::string name, Function function);
+		static void checkFunctionNameCorrectness(std::string func_name);
 		void addFunction(std::string name, Expression &exp);
 		void deleteFunction(std::string name, bool isThrow = false);
 		void resetFunctions(bool addDefault = true);
 		void setParserSettings(ParserSettings& se);
 	    void setNewXAlias(char symb);
+		char getXAlias();
 	};
 
 
@@ -122,6 +128,8 @@ namespace smp //Simple Math Parser namespace
 	private:
 		void updateSubOpers() override;
 	public:
+		friend FunctionWrapper;
+
 		Expression(std::string value = "", bool toBePrepared = true, std::shared_ptr<ParserSettings> ps = nullptr);
 		Expression(Expression& exp);
 
@@ -133,8 +141,11 @@ namespace smp //Simple Math Parser namespace
 
 	struct FunctionWrapper
 	{
+	private:
 		Function function_ptr;
 		std::shared_ptr<Expression> exp_ptr;
+
+	public:
 
 		FunctionWrapper(Function func) : function_ptr(func), exp_ptr(nullptr) {}
 
@@ -142,18 +153,47 @@ namespace smp //Simple Math Parser namespace
 
 		FunctionWrapper(std::shared_ptr<Expression> ptr) : exp_ptr(ptr) {}
 
+
+		std::string getFunctionNotation()
+		{
+			if (isExpressionObject())
+				return exp_ptr->getOriginalExpression();
+			else
+				return "Impossible to demonstrate (Implemented via code)";
+		}
+
 		FunctionWrapper(const FunctionWrapper& copy)
 		{
-			this->exp_ptr = std::shared_ptr<Expression>(new Expression(*copy.exp_ptr));
-			this->function_ptr = copy.function_ptr;
+			if(copy.exp_ptr != nullptr)
+				this->exp_ptr = std::shared_ptr<Expression>(new Expression(*copy.exp_ptr));
+			else
+				this->function_ptr = copy.function_ptr;
 		}
 
 		double getCalculatedValue(double argument)
 		{
-			if (exp_ptr != nullptr)
+			if (isExpressionObject())
 				return exp_ptr->getResult(argument);
 
 			return function_ptr(argument);
+		}
+
+		bool isExpressionObject()
+		{
+			return exp_ptr != nullptr;
+		}
+
+		std::shared_ptr<ParserSettings> getParserSettingsFromExpressionObject()
+		{
+			if (isExpressionObject())
+				return exp_ptr->ps;
+			else
+				return nullptr;
+		}
+
+		Expression* getExpPtr()
+		{
+			return exp_ptr.get();
 		}
 	};
 	
@@ -413,5 +453,3 @@ namespace smp //Simple Math Parser namespace
 	};
 
 }
-
-

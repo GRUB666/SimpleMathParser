@@ -7,11 +7,6 @@ void smp::ParserSettings::InitializeConstants(std::map<char, double>* consts, bo
 {
 	Constants.clear();
 
-	if (consts != nullptr)
-	{
-		Constants = *consts;
-	}
-
 	if (addConstants)
 	{
 		if (Constants.find('p') == Constants.end())//Default constants (No forced redifinitions)
@@ -20,6 +15,13 @@ void smp::ParserSettings::InitializeConstants(std::map<char, double>* consts, bo
 		if (Constants.find('e') == Constants.end())
 			Constants['e'] = E;
 	}
+
+	if (consts != nullptr)
+	{
+		Constants = *consts;
+	}
+
+	
 }
 
 void smp::ParserSettings::InitializeFunctions(FunctionsMap *funcs, bool addFunctions)
@@ -73,6 +75,7 @@ void smp::ParserSettings::InitializeFunctions(FunctionsMap *funcs, bool addFunct
 		Functions["sin"] = std::sin;
 		Functions["cos"] = std::cos;
 		Functions["tan"] = std::tan;
+		Functions["tg"] = Functions["tan"];
 		Functions["arctg"] = std::atan;
 		Functions["sh"] = std::sinh;
 		Functions["ch"] = std::cosh;
@@ -147,6 +150,11 @@ void smp::Oper::setNewXAlias(char symb)
 		throw IncorrectXAliasName("Incorrect x alias: " + symb, std::to_string(symb));
 	
 	ps->x_alias = symb;
+}
+
+char smp::Oper::getXAlias()
+{
+	return ps->x_alias;
 }
 
 bool smp::Oper::isLetter(char symb)
@@ -341,10 +349,20 @@ void smp::Oper::replaceIncorrectSymbols()
 	}
 }
 
-void smp::Oper::setConstants(std::map<char, double>* consts, bool addConstants)
+void smp::Oper::setConstants(ConstantsMap* consts, bool addConstants)
 {
 	ps->InitializeConstants(consts, addConstants);
 	setExpression(origin_string);
+}
+
+ConstantsMap smp::Oper::getConstants()
+{
+	return ps->Constants;
+}
+
+FunctionsMap smp::Oper::getFunctions()
+{
+	return this->ps->Functions;
 }
 
 void smp::Oper::addConstant(char symb, double value)
@@ -353,7 +371,7 @@ void smp::Oper::addConstant(char symb, double value)
 	if (!isLetter(symb))
 		throw IncorrectConstantName("Unresolved character (" + tmp_str + ") in name of constant: " + symb, std::to_string(symb));
 
-	ps->Constants.emplace(symb, value);
+	ps->Constants[symb] = value;
 	setExpression(origin_string);
 }
 
@@ -375,14 +393,20 @@ void smp::Oper::setFunctions(FunctionsMap *funcs, bool addFunctions)
 
 void smp::Oper::addFunction(std::string name, Function function)
 {
-	for (auto var : name)
-	{
-		std::string tmp_str { var };
-		if (!isLetter(var))
-			throw IncorrectFunctionName("Unresolved character (" + tmp_str + ") in name of function: " + name, std::to_string(var));
-	}
+	checkFunctionNameCorrectness(name);
+	
 	ps->Functions[name] = function;
 	setExpression(origin_string);
+}
+
+void smp::Oper::checkFunctionNameCorrectness(std::string func_name)
+{
+	for (auto var : func_name)
+	{
+		std::string tmp_str{ var };
+		if (!isLetter(var))
+			throw IncorrectFunctionName("Unresolved character (" + tmp_str + ") in name of function: " + func_name, std::to_string(var));
+	}
 }
 
 void smp::Oper::addFunction(std::string name, Expression & exp)
@@ -392,9 +416,9 @@ void smp::Oper::addFunction(std::string name, Expression & exp)
 
 	for (auto &var : exp.ps->Functions)
 	{
-		if(var.second.exp_ptr != nullptr)
-			if (var.second.exp_ptr->ps == this->ps)
-				throw RecursionException("It is about to be a recursive function " + name + "(" + this->ps->x_alias + ")! Expression has reference to this object", name, this, var.second.exp_ptr.get());
+		if(var.second.isExpressionObject())
+			if (var.second.getParserSettingsFromExpressionObject() == this->ps)
+				throw RecursionException("It is about to be a recursive function " + name + "(" + this->ps->x_alias + ")! Expression has reference to this object", name, this, var.second.getExpPtr());
 	}
 
 	std::shared_ptr<Expression> internal_exp = std::shared_ptr<Expression>(new Expression);
@@ -991,7 +1015,7 @@ double Number::getResult(double x)
 
 			catch (std::invalid_argument&)
 			{
-				throw ConversionError("stof() couldn`t convert " + value + " to double. Expression isn`t correct!", value);
+				throw ConversionError("stod() couldn`t convert " + value + " to double. Expression isn`t correct!", value);
 			}
 		}
 			
