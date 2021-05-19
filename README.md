@@ -3,6 +3,13 @@
 # RU
 # Simple Mathematical Parser (multifunctional)
 
+Version 1.6
+Version Features:
+- Now you can set your expressions with: exp = "sin(x)/x";
+- Also you can add functions with addFunction("nameFunction", "e^x + cos(x)");
+- Operators +,-,*,/,^ were overloaded (it returns std::string with target expresion)
+
+
 Version 1.5 (Gold)
 Version Features:
 - expression expression
