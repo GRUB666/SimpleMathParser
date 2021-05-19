@@ -142,11 +142,11 @@ namespace smp //Simple Math Parser namespace
 
 		void operator=(std::string exp);
 
-		std::string operator+(const Oper& obj);
-		std::string operator-(const Oper& obj);
-		std::string operator*(const Oper& obj);
-		std::string operator/(const Oper& obj);
-		std::string operator^(const Oper& obj);
+		std::string operator+(const Oper& obj) const;
+		std::string operator-(const Oper& obj) const;
+		std::string operator*(const Oper& obj) const;
+		std::string operator/(const Oper& obj) const;
+		std::string operator^(const Oper& obj) const;
 	};
 
 	struct FunctionWrapper

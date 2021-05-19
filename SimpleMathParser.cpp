@@ -542,29 +542,28 @@ void smp::Expression::operator=(std::string exp)
 	setExpression(exp);
 }
 
-std::string smp::Expression::operator+(const Oper & obj)
+std::string smp::Expression::operator+(const Oper & obj) const
 {
 	
 	return this->getOriginalExpression() + " + " + obj.getOriginalExpression();
 }
 
-
-std::string smp::Expression::operator-(const Oper & obj)
+std::string smp::Expression::operator-(const Oper & obj) const
 {
 	return this->getOriginalExpression() + " - " + obj.getOriginalExpression();
 }
 
-std::string smp::Expression::operator*(const Oper & obj)
+std::string smp::Expression::operator*(const Oper & obj) const
 {
 	return "(" + this->getOriginalExpression() + ")(" + obj.getOriginalExpression() + ")";
 }
 
-std::string smp::Expression::operator/(const Oper & obj)
+std::string smp::Expression::operator/(const Oper & obj) const
 {
 	return "(" + this->getOriginalExpression() + ")/(" + obj.getOriginalExpression() + ")";
 }
 
-std::string smp::Expression::operator^(const Oper & obj)
+std::string smp::Expression::operator^(const Oper & obj) const
 {
 	return "(" + this->getOriginalExpression() + ")^(" + obj.getOriginalExpression() + ")";
 }
