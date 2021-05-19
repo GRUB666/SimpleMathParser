@@ -2,6 +2,12 @@
 
 using namespace smp;
 
+smp::ParserSettings::ParserSettings()
+{
+	InitializeConstants();
+	InitializeFunctions();
+}
+
 //If the function is called without arguments, all constants are set by default.
 void smp::ParserSettings::InitializeConstants(std::map<char, double>* consts, bool addConstants)
 {
@@ -126,8 +132,6 @@ double smp::ParserSettings::getNumberFromLetter(char symb, double x_value)
 
 
 
-
-
 //Oper definintions-------------
 Oper::Oper(std::string value, std::shared_ptr<ParserSettings> ps)
 {
@@ -152,10 +156,12 @@ void smp::Oper::setNewXAlias(char symb)
 	ps->x_alias = symb;
 }
 
-char smp::Oper::getXAlias()
+char smp::Oper::getXAlias() const
 {
 	return ps->x_alias;
 }
+
+
 
 bool smp::Oper::isLetter(char symb)
 {
@@ -199,14 +205,16 @@ void smp::Oper::CutUnnecessary() //Whitespaces, special symbols and unreadable s
 void smp::Oper::FunctionsMarker()
 {
 	int pos;
+
 	for (auto &var : ps->Functions)
 	{
 		pos = value.find(var.first, 0);
+
 		std::string new_string = "({" + var.first + "}";
 
 		while (pos != std::string::npos)
 		{
-			if (value[pos + var.first.size()] != '}')
+			if ((pos == 0 || value[pos - 1] != '{') && value[pos + var.first.size()] != '}')
 			{
 				value.replace(pos, var.first.length(), new_string);
 
@@ -226,9 +234,12 @@ void smp::Oper::FunctionsMarker()
 					value.insert(j, 1, ')');
 				else
 					value.push_back(')');
+
+				pos = value.find(var.first, pos + 3);
 			}
 
-			pos = value.find(var.first, pos + 3);
+			else
+				pos = value.find(var.first, pos + 1);
 		}
 	}
 }
@@ -355,12 +366,12 @@ void smp::Oper::setConstants(ConstantsMap* consts, bool addConstants)
 	setExpression(origin_string);
 }
 
-ConstantsMap smp::Oper::getConstants()
+ConstantsMap smp::Oper::getConstants() const
 {
 	return ps->Constants;
 }
 
-FunctionsMap smp::Oper::getFunctions()
+FunctionsMap smp::Oper::getFunctions() const
 {
 	return this->ps->Functions;
 }
@@ -427,6 +438,14 @@ void smp::Oper::addFunction(std::string name, Expression & exp)
 
 	ps->Functions[name] = internal_exp;
 	setExpression(origin_string);
+}
+
+void smp::Oper::addFunction(std::string name, std::string function_str)
+{
+	Expression func(function_str);
+	func.setFunctions(&this->getFunctions()); //Create new exp object with same of this parameters 
+	func.setConstants(&this->getConstants());
+	addFunction(name, func);
 }
 
 void smp::Oper::deleteFunction(std::string name, bool isThrow)
@@ -517,6 +536,39 @@ void smp::Expression::setExpression(std::string str)
 	clearSubOpers();
 	updateSubOpers();
 }
+
+void smp::Expression::operator=(std::string exp)
+{
+	setExpression(exp);
+}
+
+std::string smp::Expression::operator+(const Oper & obj)
+{
+	
+	return this->getOriginalExpression() + " + " + obj.getOriginalExpression();
+}
+
+
+std::string smp::Expression::operator-(const Oper & obj)
+{
+	return this->getOriginalExpression() + " - " + obj.getOriginalExpression();
+}
+
+std::string smp::Expression::operator*(const Oper & obj)
+{
+	return "(" + this->getOriginalExpression() + ")(" + obj.getOriginalExpression() + ")";
+}
+
+std::string smp::Expression::operator/(const Oper & obj)
+{
+	return "(" + this->getOriginalExpression() + ")/(" + obj.getOriginalExpression() + ")";
+}
+
+std::string smp::Expression::operator^(const Oper & obj)
+{
+	return "(" + this->getOriginalExpression() + ")^(" + obj.getOriginalExpression() + ")";
+}
+
 
 void smp::Expression::updateSubOpers()
 {
@@ -1076,4 +1128,41 @@ void smp::Function_Oper::updateSubOpers()
 		argument.push_back(value[i]);
 
 	sub_opers.push_back(std::shared_ptr<Oper>(new Expression(argument, false, ps)));
+}
+
+bool smp::MapFunctionCompare::operator()(const std::string & lhs, const std::string & rhs) const
+{
+	return lhs.length() > rhs.length() || (lhs.length() == rhs.length() && lhs < rhs);
+}
+
+std::string smp::FunctionWrapper::getFunctionNotation()
+{
+	if (isExpressionObject())
+		return exp_ptr->getOriginalExpression();
+	else
+		return "Impossible to demonstrate (Implemented via code)";
+}
+
+smp::FunctionWrapper::FunctionWrapper(const FunctionWrapper & copy)
+{
+	if (copy.exp_ptr != nullptr)
+		this->exp_ptr = std::shared_ptr<Expression>(new Expression(*copy.exp_ptr));
+	else
+		this->function_ptr = copy.function_ptr;
+}
+
+double smp::FunctionWrapper::getCalculatedValue(double argument)
+{
+	if (isExpressionObject())
+		return exp_ptr->getResult(argument);
+
+	return function_ptr(argument);
+}
+
+std::shared_ptr<ParserSettings> smp::FunctionWrapper::getParserSettingsFromExpressionObject()
+{
+	if (isExpressionObject())
+		return exp_ptr->ps;
+	else
+		return nullptr;
 }

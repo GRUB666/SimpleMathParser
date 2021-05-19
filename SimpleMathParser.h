@@ -36,7 +36,13 @@ namespace smp //Simple Math Parser namespace
 
 	using Function = double(*)(double argument);
 
-	typedef std::map<std::string, FunctionWrapper> FunctionsMap;
+
+	struct MapFunctionCompare
+	{
+		bool operator()(const std::string &lhs, const std::string &rhs) const;
+	};
+
+	typedef std::map<std::string, FunctionWrapper, MapFunctionCompare> FunctionsMap;
 	typedef std::map<char, double> ConstantsMap;
 
 	struct ParserSettings
@@ -46,11 +52,7 @@ namespace smp //Simple Math Parser namespace
 		char x_alias = 'x';
 
 
-		ParserSettings()
-		{
-			InitializeConstants();
-			InitializeFunctions();
-		}
+		ParserSettings();
 
 		void InitializeConstants(std::map<char, double> *consts = nullptr, bool addConstants = true);
 		void InitializeFunctions(FunctionsMap *funcs = nullptr, bool addFunctions = true);
@@ -90,26 +92,27 @@ namespace smp //Simple Math Parser namespace
 		virtual double getResult() { return 1; }
 		virtual void setExpression(std::string str = "") = 0;
 		
-		std::string getExpression() { return this->value; }
-		std::string getOriginalExpression() { return this->origin_string; }
-		void setXValue(double x) { x_value = x; }
-		double getXValue() { return x_value; }
-		void setConstants(ConstantsMap *consts = nullptr, bool addConstants = true);
-		ConstantsMap getConstants();
-		void addConstant(char symb, double value);
-		void deleteConstant(char name, bool isThrow = false);
-		void resetConstants(bool addDefault = true);
+		std::string getExpression() const { return this->value; } //returns pasred string
+		std::string getOriginalExpression() const { return this->origin_string; } //returns inputed string
+		void setXValue(double x) { x_value = x; } //set current default x value
+		double getXValue() const { return x_value; } //returns current default x value
+		void setConstants(ConstantsMap *consts = nullptr, bool addConstants = true); //set Constants with ConstantsMap
+		ConstantsMap getConstants() const; //Returns ConstantsMap
+		void addConstant(char symb, double value); //Adds a current constant
+		void deleteConstant(char name, bool isThrow = false); //Delete a current constants
+		void resetConstants(bool addDefault = true); //Reset all constants (if true - it adds default constants)
 
-		void setFunctions(FunctionsMap *funcs = nullptr, bool addFunctions = true);
-		FunctionsMap getFunctions();
-		void addFunction(std::string name, Function function);
-		static void checkFunctionNameCorrectness(std::string func_name);
-		void addFunction(std::string name, Expression &exp);
-		void deleteFunction(std::string name, bool isThrow = false);
-		void resetFunctions(bool addDefault = true);
-		void setParserSettings(ParserSettings& se);
-	    void setNewXAlias(char symb);
-		char getXAlias();
+		void setFunctions(FunctionsMap *funcs = nullptr, bool addFunctions = true); //Set functions with functions Map
+		FunctionsMap getFunctions() const; //Returns FunctionsMap
+		static void checkFunctionNameCorrectness(std::string func_name); //Check if function name is not correct
+		void addFunction(std::string name, Function function); //Adds a current function (with function pointer)
+		void addFunction(std::string name, Expression &exp); //Add function with Expression instance
+		void addFunction(std::string name, std::string function_str); //Add function with string of expression
+		void deleteFunction(std::string name, bool isThrow = false); //It throws exception if isThrow = true and there is no target function
+		void resetFunctions(bool addDefault = true); //Reset functions (default or not)
+		void setParserSettings(ParserSettings& se); 
+	    void setNewXAlias(char symb); //Set alias of variable (as default - x)
+		char getXAlias() const; //Returns current variable alias
 	};
 
 
@@ -130,13 +133,20 @@ namespace smp //Simple Math Parser namespace
 	public:
 		friend FunctionWrapper;
 
-		Expression(std::string value = "", bool toBePrepared = true, std::shared_ptr<ParserSettings> ps = nullptr);
+		explicit Expression(std::string value = "", bool toBePrepared = true, std::shared_ptr<ParserSettings> ps = nullptr);
 		Expression(Expression& exp);
-
 
 		double getResult(double x) override;
 		double getResult() override { return getResult(x_value); }
 		void setExpression(std::string str = "") override;
+
+		void operator=(std::string exp);
+
+		std::string operator+(const Oper& obj);
+		std::string operator-(const Oper& obj);
+		std::string operator*(const Oper& obj);
+		std::string operator/(const Oper& obj);
+		std::string operator^(const Oper& obj);
 	};
 
 	struct FunctionWrapper
@@ -153,48 +163,17 @@ namespace smp //Simple Math Parser namespace
 
 		FunctionWrapper(std::shared_ptr<Expression> ptr) : exp_ptr(ptr) {}
 
+		std::string getFunctionNotation();
 
-		std::string getFunctionNotation()
-		{
-			if (isExpressionObject())
-				return exp_ptr->getOriginalExpression();
-			else
-				return "Impossible to demonstrate (Implemented via code)";
-		}
+		FunctionWrapper(const FunctionWrapper& copy);
 
-		FunctionWrapper(const FunctionWrapper& copy)
-		{
-			if(copy.exp_ptr != nullptr)
-				this->exp_ptr = std::shared_ptr<Expression>(new Expression(*copy.exp_ptr));
-			else
-				this->function_ptr = copy.function_ptr;
-		}
+		double getCalculatedValue(double argument);
 
-		double getCalculatedValue(double argument)
-		{
-			if (isExpressionObject())
-				return exp_ptr->getResult(argument);
+		bool isExpressionObject() { return exp_ptr != nullptr; }
 
-			return function_ptr(argument);
-		}
+		std::shared_ptr<ParserSettings> getParserSettingsFromExpressionObject();
 
-		bool isExpressionObject()
-		{
-			return exp_ptr != nullptr;
-		}
-
-		std::shared_ptr<ParserSettings> getParserSettingsFromExpressionObject()
-		{
-			if (isExpressionObject())
-				return exp_ptr->ps;
-			else
-				return nullptr;
-		}
-
-		Expression* getExpPtr()
-		{
-			return exp_ptr.get();
-		}
+		Expression* getExpPtr() { return exp_ptr.get(); }
 	};
 	
 

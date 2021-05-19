@@ -5,18 +5,17 @@ using namespace std;
 
 //Example of program which uses Simple Math Parser (SMP)
 
-
 //Prototypes of my own math functions which shall be added in parser (definitions of these you can find under main())
-double gamma(double val); 
-int N_factroial(int n);
-double Factorial(double x); 
+double Factorial(double x);
+double gamma(double val);
 
+int N_factroial(int n);
 
 int main()
 {
 	smp::Expression myExp; //myExp instance
-	smp::Expression giperbola_exp("1 / x"); //NEW!!! We are about to add this function in myExp like we do same with Factorial and gamma 
-	
+	smp::Expression giperbola_exp("1 / x"); //We are about to add this function in myExp like we do same with Factorial and gamma 
+
 	try //Try to add own constants and functions (also we try to change alias of variable)
 	{
 		myExp.addConstant('g', 9.87); //Adding new constants
@@ -24,6 +23,7 @@ int main()
 
 		myExp.addFunction("fact", Factorial); //Adding factorial function
 		myExp.addFunction("G", gamma); //Adding gamma function
+		myExp.addFunction("tera", "2x"); //Also we can add function in direct form. "tera()" gets all functions and constants of parent myExp
 
 		myExp.addFunction("giperbola", giperbola_exp); //Adding giperbola expression! 
 		//Also there is the third default parameter "save_origin_parser_setting" it`s false as default. 
@@ -33,11 +33,20 @@ int main()
 		myExp.deleteConstant('h', true); //There are two parameters: "name" and "isThrow", as defeault isThrow = false
 		//If isTrow = true, you would get exception when trying to delete function or constant that doesn`t exist
 
+		myExp.addFunction("FunctionName", "2x/sin(x) + 5^x"); //Also we can add functions like this
 
 		myExp.setNewXAlias('y'); //Also we can change alias of variable in expression (Default is 'x')
 		myExp.setNewXAlias('a');
 		myExp.setNewXAlias('z'); //Now the variable in myExp is z
 		myExp.setNewXAlias('x'); //And now this is a default value
+
+
+		//------- Also we can do something like this
+		smp::Expression exp1("x"); 
+		smp::Expression exp2("2x");
+		myExp = exp1 - exp2; //myExp has expression "x - 2x"
+		myExp = "2x - sin(x)"; //Set expression with const char[]
+		//-------
 	}
 
 	catch (smp::IncorrectFunctionName& exp) //That is throwed if you add a function with incorrect name (only letters!)
@@ -55,7 +64,8 @@ int main()
 		cout << exp.what();
 	}
 
-	myExp.setXValue(4); //We can set default variable value
+	myExp.setXValue(4); //We can set default value of variable
+
 
 	while (true) //Main loop
 	{
