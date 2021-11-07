@@ -1,6 +1,6 @@
 # EN-RU
 
-# RU
+# EN
 # Simple Mathematical Parser (multifunctional)
 
 Version 1.6
