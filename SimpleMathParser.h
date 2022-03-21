@@ -91,19 +91,19 @@ namespace smp //Simple Math Parser namespace
 		virtual double getResult(double x) = 0;
 		virtual double getResult() { return 1; }
 		virtual void setExpression(std::string str = "") = 0;
-		
+
 		std::string getExpression() const { return this->value; } //returns pasred string
 		std::string getOriginalExpression() const { return this->origin_string; } //returns inputed string
 		void setXValue(double x) { x_value = x; } //set current default x value
 		double getXValue() const { return x_value; } //returns current default x value
 		void setConstants(ConstantsMap *consts = nullptr, bool addConstants = true); //set Constants with ConstantsMap
-		ConstantsMap getConstants() const; //Returns ConstantsMap
+        ConstantsMap& getConstants() const; //Returns ConstantsMap
 		void addConstant(char symb, double value); //Adds a current constant
 		void deleteConstant(char name, bool isThrow = false); //Delete a current constants
 		void resetConstants(bool addDefault = true); //Reset all constants (if true - it adds default constants)
 
 		void setFunctions(FunctionsMap *funcs = nullptr, bool addFunctions = true); //Set functions with functions Map
-		FunctionsMap getFunctions() const; //Returns FunctionsMap
+        FunctionsMap& getFunctions() const; //Returns FunctionsMap
 		static void checkFunctionNameCorrectness(std::string func_name); //Check if function name is not correct
 		void addFunction(std::string name, Function function); //Adds a current function (with function pointer)
 		void addFunction(std::string name, Expression &exp); //Add function with Expression instance

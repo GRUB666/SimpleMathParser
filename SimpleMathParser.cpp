@@ -366,12 +366,12 @@ void smp::Oper::setConstants(ConstantsMap* consts, bool addConstants)
 	setExpression(origin_string);
 }
 
-ConstantsMap smp::Oper::getConstants() const
+ConstantsMap& smp::Oper::getConstants() const
 {
 	return ps->Constants;
 }
 
-FunctionsMap smp::Oper::getFunctions() const
+FunctionsMap& smp::Oper::getFunctions() const
 {
 	return this->ps->Functions;
 }
