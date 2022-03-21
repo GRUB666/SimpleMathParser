@@ -1,5 +1,6 @@
 #include <iostream>
 #include "SimpleMathParser.h" 
+#include "SMPExceptions.h"
 
 using namespace std;
 
@@ -126,7 +127,7 @@ int main()
 }
 
 
-double gamma(double val) //Simple gamma function for example
+double gamma(double val) noexcept //Simple gamma function for example
 {
 	int const n = 999999; //Accurate value
 	double result = 1;

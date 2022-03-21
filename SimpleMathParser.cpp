@@ -1,15 +1,16 @@
 #include "SimpleMathParser.h"
+#include "SMPExceptions.h"
 
 using namespace smp;
 
-smp::ParserSettings::ParserSettings()
+ParserSettings::ParserSettings()
 {
 	InitializeConstants();
 	InitializeFunctions();
 }
 
 //If the function is called without arguments, all constants are set by default.
-void smp::ParserSettings::InitializeConstants(std::map<char, double>* consts, bool addConstants)
+void ParserSettings::InitializeConstants(std::map<char, double>* consts, bool addConstants)
 {
 	Constants.clear();
 
@@ -30,7 +31,7 @@ void smp::ParserSettings::InitializeConstants(std::map<char, double>* consts, bo
 	
 }
 
-void smp::ParserSettings::InitializeFunctions(FunctionsMap *funcs, bool addFunctions)
+void ParserSettings::InitializeFunctions(FunctionsMap *funcs, bool addFunctions)
 {
 	Functions.clear();
 
@@ -94,7 +95,7 @@ void smp::ParserSettings::InitializeFunctions(FunctionsMap *funcs, bool addFunct
 	}
 }
 
-double smp::ParserSettings::getFunctionValue(std::string name, double argument)
+double ParserSettings::getFunctionValue(std::string name, double argument)
 {
 	auto it = Functions.find(name);
 	
@@ -104,7 +105,7 @@ double smp::ParserSettings::getFunctionValue(std::string name, double argument)
 	return Functions[name].getCalculatedValue(argument);
 }
 
-double smp::ParserSettings::getNumberFromLetter(char symb, double x_value)
+double ParserSettings::getNumberFromLetter(char symb, double x_value)
 {
 	if (symb != x_alias)
 	{
@@ -120,7 +121,7 @@ double smp::ParserSettings::getNumberFromLetter(char symb, double x_value)
 	return 0.0;
 }
 
-//Function smp::ParserSettings::getFunctionFromString(std::string func_name)
+//Function ParserSettings::getFunctionFromString(std::string func_name)
 //{
 //	auto it = Functions.find(func_name);
 //
@@ -148,7 +149,7 @@ Oper::Oper(std::string value, std::shared_ptr<ParserSettings> ps)
 		this->ps = ps;
 }
 
-void smp::Oper::setNewXAlias(char symb)
+void Oper::setNewXAlias(char symb)
 {
 	if (!isLetter(symb))
 		throw IncorrectXAliasName("Incorrect x alias: " + symb, std::to_string(symb));
@@ -156,14 +157,14 @@ void smp::Oper::setNewXAlias(char symb)
 	ps->x_alias = symb;
 }
 
-char smp::Oper::getXAlias() const
+char Oper::getXAlias() const
 {
 	return ps->x_alias;
 }
 
 
 
-bool smp::Oper::isLetter(char symb)
+bool Oper::isLetter(char symb)
 {
 	if (symb >= 'a' && symb <= 'z' || symb >= 'A' && symb <= 'Z')
 		return true;
@@ -171,7 +172,7 @@ bool smp::Oper::isLetter(char symb)
 	return false;
 }
 
-bool smp::Oper::isDigit(char symb)
+bool Oper::isDigit(char symb)
 {
 	if (symb >= '0' && symb <= '9')
 		return true;
@@ -179,7 +180,7 @@ bool smp::Oper::isDigit(char symb)
 	return false;
 }
 
-bool smp::Oper::isServiceSymbol(char symb)
+bool Oper::isServiceSymbol(char symb)
 {
 	if (symb == '(' || symb == ')' || symb == '+' || symb == '-' || symb == '*' || symb == '/' || symb == '^' || symb == '.' || symb == ':')
 		return true;
@@ -187,7 +188,7 @@ bool smp::Oper::isServiceSymbol(char symb)
 }
 
 
-void smp::Oper::CutUnnecessary() //Whitespaces, special symbols and unreadable symbols like '?'
+void Oper::CutUnnecessary() //Whitespaces, special symbols and unreadable symbols like '?'
 {
 	if (value[0] == '+')
 		value.erase(0);
@@ -202,7 +203,7 @@ void smp::Oper::CutUnnecessary() //Whitespaces, special symbols and unreadable s
 	}
 }
 
-void smp::Oper::FunctionsMarker()
+void Oper::FunctionsMarker()
 {
 	int pos;
 
@@ -245,7 +246,7 @@ void smp::Oper::FunctionsMarker()
 }
 
 
-void smp::Oper::prepareString()
+void Oper::prepareString()
 {
 	replaceIncorrectSymbols();
 	CutUnnecessary();
@@ -317,12 +318,12 @@ void smp::Oper::prepareString()
 	}
 }
 
-void smp::Oper::clearSubOpers()
+void Oper::clearSubOpers()
 {
 	sub_opers.clear();
 }
 
-void smp::Oper::checkBracketsCorrect()
+void Oper::checkBracketsCorrect()
 {
 	int opened_count = 0;
 
@@ -339,7 +340,7 @@ void smp::Oper::checkBracketsCorrect()
 }
 
 
-void smp::Oper::replaceIncorrectSymbols()
+void Oper::replaceIncorrectSymbols()
 {
 	std::string to_change_syms[3]{ ":", ",", "pi" };
 
@@ -360,23 +361,23 @@ void smp::Oper::replaceIncorrectSymbols()
 	}
 }
 
-void smp::Oper::setConstants(ConstantsMap* consts, bool addConstants)
+void Oper::setConstants(ConstantsMap* consts, bool addConstants)
 {
 	ps->InitializeConstants(consts, addConstants);
 	setExpression(origin_string);
 }
 
-ConstantsMap& smp::Oper::getConstants() const
+ConstantsMap& Oper::getConstants() const
 {
 	return ps->Constants;
 }
 
-FunctionsMap& smp::Oper::getFunctions() const
+FunctionsMap& Oper::getFunctions() const
 {
 	return this->ps->Functions;
 }
 
-void smp::Oper::addConstant(char symb, double value)
+void Oper::addConstant(char symb, double value)
 {
 	std::string tmp_str{ symb };
 	if (!isLetter(symb))
@@ -386,7 +387,7 @@ void smp::Oper::addConstant(char symb, double value)
 	setExpression(origin_string);
 }
 
-void smp::Oper::deleteConstant(char name, bool isThrow)
+void Oper::deleteConstant(char name, bool isThrow)
 {
 	auto it = ps->Constants.find(name);
 	if (it == ps->Constants.end() && isThrow)
@@ -396,13 +397,13 @@ void smp::Oper::deleteConstant(char name, bool isThrow)
 	setExpression(origin_string);
 }
 
-void smp::Oper::setFunctions(FunctionsMap *funcs, bool addFunctions)
+void Oper::setFunctions(FunctionsMap *funcs, bool addFunctions)
 {
 	ps->InitializeFunctions(funcs, addFunctions);
 	setExpression(origin_string);
 }
 
-void smp::Oper::addFunction(std::string name, Function function)
+void Oper::addFunction(std::string name, Function function)
 {
 	checkFunctionNameCorrectness(name);
 	
@@ -410,7 +411,7 @@ void smp::Oper::addFunction(std::string name, Function function)
 	setExpression(origin_string);
 }
 
-void smp::Oper::checkFunctionNameCorrectness(std::string func_name)
+void Oper::checkFunctionNameCorrectness(std::string func_name)
 {
 	for (auto var : func_name)
 	{
@@ -420,7 +421,7 @@ void smp::Oper::checkFunctionNameCorrectness(std::string func_name)
 	}
 }
 
-void smp::Oper::addFunction(std::string name, Expression & exp)
+void Oper::addFunction(std::string name, Expression & exp)
 {
 	if (this == &exp)
 		throw RecursionException("It is about to be a recursive function " + name + "(" + this->ps->x_alias + ")! addFunction can`t get an instance equals this", name, this, &exp);
@@ -440,7 +441,7 @@ void smp::Oper::addFunction(std::string name, Expression & exp)
 	setExpression(origin_string);
 }
 
-void smp::Oper::addFunction(std::string name, std::string function_str)
+void Oper::addFunction(std::string name, std::string function_str)
 {
 	Expression func(function_str);
 	func.setFunctions(&this->getFunctions()); //Create new exp object with same of this parameters 
@@ -448,7 +449,7 @@ void smp::Oper::addFunction(std::string name, std::string function_str)
 	addFunction(name, func);
 }
 
-void smp::Oper::deleteFunction(std::string name, bool isThrow)
+void Oper::deleteFunction(std::string name, bool isThrow)
 {
 	auto it = ps->Functions.find(name);
 	if (it == ps->Functions.end() && isThrow)
@@ -458,28 +459,28 @@ void smp::Oper::deleteFunction(std::string name, bool isThrow)
 	setExpression(origin_string);
 }
 
-void smp::Oper::resetConstants(bool addDefault)
+void Oper::resetConstants(bool addDefault)
 {
 	ps->InitializeConstants(nullptr, addDefault);
 
 	setExpression(origin_string);
 }
 
-void smp::Oper::resetFunctions(bool addDefault)
+void Oper::resetFunctions(bool addDefault)
 {
 	ps->InitializeFunctions(nullptr, addDefault);
 
 	setExpression(origin_string);
 }
 
-void smp::Oper::setParserSettings(ParserSettings & se)
+void Oper::setParserSettings(ParserSettings & se)
 {
 	ps->Constants = se.Constants;
 	ps->Functions = se.Functions;
 	setExpression(origin_string);
 }
 
-smp::Oper::~Oper()
+Oper::~Oper()
 {
 	clearSubOpers();
 }
@@ -499,7 +500,7 @@ Expression::Expression(std::string value, bool toBePrepared, std::shared_ptr<Par
 	updateSubOpers();
 }
 
-smp::Expression::Expression(Expression & exp)
+Expression::Expression(Expression & exp)
 {
 	*this = Expression(exp.getExpression(), false, exp.ps);
 }
@@ -527,7 +528,7 @@ double Expression::getResult(double x)
 	return result;
 }
 
-void smp::Expression::setExpression(std::string str)
+void Expression::setExpression(std::string str)
 {
 	origin_string = str;
 	this->value = str;
@@ -537,39 +538,39 @@ void smp::Expression::setExpression(std::string str)
 	updateSubOpers();
 }
 
-void smp::Expression::operator=(std::string exp)
+void Expression::operator=(std::string exp)
 {
 	setExpression(exp);
 }
 
-std::string smp::Expression::operator+(const Oper & obj) const
+std::string Expression::operator+(const Oper & obj) const
 {
 	
 	return this->getOriginalExpression() + " + " + obj.getOriginalExpression();
 }
 
-std::string smp::Expression::operator-(const Oper & obj) const
+std::string Expression::operator-(const Oper & obj) const
 {
 	return this->getOriginalExpression() + " - " + obj.getOriginalExpression();
 }
 
-std::string smp::Expression::operator*(const Oper & obj) const
+std::string Expression::operator*(const Oper & obj) const
 {
 	return "(" + this->getOriginalExpression() + ")(" + obj.getOriginalExpression() + ")";
 }
 
-std::string smp::Expression::operator/(const Oper & obj) const
+std::string Expression::operator/(const Oper & obj) const
 {
 	return "(" + this->getOriginalExpression() + ")/(" + obj.getOriginalExpression() + ")";
 }
 
-std::string smp::Expression::operator^(const Oper & obj) const
+std::string Expression::operator^(const Oper & obj) const
 {
 	return "(" + this->getOriginalExpression() + ")^(" + obj.getOriginalExpression() + ")";
 }
 
 
-void smp::Expression::updateSubOpers()
+void Expression::updateSubOpers()
 {
 	actions.clear();
 
@@ -642,14 +643,14 @@ double Multiplication_Oper::getResult(double x)
 	return result;
 }
 
-void smp::Multiplication_Oper::setExpression(std::string str)
+void Multiplication_Oper::setExpression(std::string str)
 {
 	this->value = str;
 	clearSubOpers();
 	updateSubOpers();
 }
 
-void smp::Multiplication_Oper::updateSubOpers()
+void Multiplication_Oper::updateSubOpers()
 {
 	actions.clear();
 	actions.push_back('*');
@@ -986,14 +987,14 @@ double Power_Oper::getResult(double x)
 	return result;
 }
 
-void smp::Power_Oper::setExpression(std::string str)
+void Power_Oper::setExpression(std::string str)
 {
 	this->value = str;
 	clearSubOpers();
 	updateSubOpers();
 }
 
-void smp::Power_Oper::updateSubOpers()
+void Power_Oper::updateSubOpers()
 {
 	int i = 0;
 	std::string power_base = "";
@@ -1078,7 +1079,7 @@ double Number::getResult(double x)
 	}
 }
 
-void smp::Number::setExpression(std::string str)
+void Number::setExpression(std::string str)
 {
 	this->value = str;
 }
@@ -1088,16 +1089,16 @@ void smp::Number::setExpression(std::string str)
 
 
 //Function definitions
-smp::Function_Oper::Function_Oper(std::string value, std::shared_ptr<ParserSettings> ps) : Oper(value, ps) { setExpression(value); }
+Function_Oper::Function_Oper(std::string value, std::shared_ptr<ParserSettings> ps) : Oper(value, ps) { setExpression(value); }
 
-void smp::Function_Oper::setExpression(std::string str)
+void Function_Oper::setExpression(std::string str)
 {
 	this->value = str;
 	clearSubOpers();
 	updateSubOpers();
 }
 
-double smp::Function_Oper::getResult(double x) //You can add your functions there (Check documentation)
+double Function_Oper::getResult(double x) //You can add your functions there (Check documentation)
 {
 	std::string func_string;
 	for (auto & var : ps->Functions) //Definding the the type of function
@@ -1113,7 +1114,7 @@ double smp::Function_Oper::getResult(double x) //You can add your functions ther
 	return ps->getFunctionValue(func_string, sub_opers[0]->getResult(x));
 }
 
-void smp::Function_Oper::updateSubOpers()
+void Function_Oper::updateSubOpers()
 {
 	std::string argument;
 	int i = 0;
@@ -1129,12 +1130,12 @@ void smp::Function_Oper::updateSubOpers()
 	sub_opers.push_back(std::shared_ptr<Oper>(new Expression(argument, false, ps)));
 }
 
-bool smp::MapFunctionCompare::operator()(const std::string & lhs, const std::string & rhs) const
+bool MapFunctionCompare::operator()(const std::string & lhs, const std::string & rhs) const
 {
 	return lhs.length() > rhs.length() || (lhs.length() == rhs.length() && lhs < rhs);
 }
 
-std::string smp::FunctionWrapper::getFunctionNotation()
+std::string FunctionWrapper::getFunctionNotation()
 {
 	if (isExpressionObject())
 		return exp_ptr->getOriginalExpression();
@@ -1142,7 +1143,7 @@ std::string smp::FunctionWrapper::getFunctionNotation()
 		return "Impossible to demonstrate (Implemented via code)";
 }
 
-smp::FunctionWrapper::FunctionWrapper(const FunctionWrapper & copy)
+FunctionWrapper::FunctionWrapper(const FunctionWrapper & copy)
 {
 	if (copy.exp_ptr != nullptr)
 		this->exp_ptr = std::shared_ptr<Expression>(new Expression(*copy.exp_ptr));
@@ -1150,7 +1151,7 @@ smp::FunctionWrapper::FunctionWrapper(const FunctionWrapper & copy)
 		this->function_ptr = copy.function_ptr;
 }
 
-double smp::FunctionWrapper::getCalculatedValue(double argument)
+double FunctionWrapper::getCalculatedValue(double argument)
 {
 	if (isExpressionObject())
 		return exp_ptr->getResult(argument);
@@ -1158,7 +1159,7 @@ double smp::FunctionWrapper::getCalculatedValue(double argument)
 	return function_ptr(argument);
 }
 
-std::shared_ptr<ParserSettings> smp::FunctionWrapper::getParserSettingsFromExpressionObject()
+std::shared_ptr<ParserSettings> FunctionWrapper::getParserSettingsFromExpressionObject()
 {
 	if (isExpressionObject())
 		return exp_ptr->ps;
