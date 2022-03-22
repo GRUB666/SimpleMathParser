@@ -1,5 +1,6 @@
 #include "SimpleMathParser.h"
 #include "SMPExceptions.h"
+#include <iostream>
 
 using namespace smp;
 
@@ -538,9 +539,32 @@ void Expression::setExpression(std::string str)
 	updateSubOpers();
 }
 
-void Expression::operator=(std::string exp)
+void Expression::operator=(const std::string& exp)
 {
 	setExpression(exp);
+}
+
+std::istream& operator>>(std::istream& in, Expression& exp)
+{
+    std::string inputed;
+    std::getline(in, inputed);
+    exp.setExpression(inputed);
+    return in;
+}
+
+std::ostream& operator<<(std::ostream& out, smp::Expression& exp)
+{
+    return out << exp.getExpression();
+}
+
+double Expression::operator()(double value)
+{
+    return getResult(value);
+}
+
+double Expression::operator()()
+{
+    return getResult(x_value);
 }
 
 std::string Expression::operator+(const Oper & obj) const

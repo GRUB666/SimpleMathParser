@@ -8,7 +8,7 @@ using namespace std;
 
 //Prototypes of my own math functions which shall be added in parser (definitions of these you can find under main())
 double Factorial(double x);
-double gamma(double val);
+double gamma(double val) noexcept;
 
 int N_factroial(int n);
 
@@ -40,7 +40,6 @@ int main()
 		myExp.setNewXAlias('a');
 		myExp.setNewXAlias('z'); //Now the variable in myExp is z
 		myExp.setNewXAlias('x'); //And now this is a default value
-
 
 		//------- Also we can do something like this
 		smp::Expression exp1("x"); 
@@ -74,10 +73,11 @@ int main()
 		{
 			string str;
 			cout << "Input expression: "; //Now parser can understand 16 standart math functions (like cos) and 2 own ones (Factorial, Gamma, Giperbola was deleted)
-			getline(cin, str); //Also parser can understand 2 standart constants and 2 own ones
-			cout << "\n\n";
-			myExp.setExpression(str);
-			cout << "f(" + std::to_string(myExp.getXValue()) + ") = " << myExp.getExpression() << " = " << myExp.getResult(); //Just use a default value of variable
+            //getline(cin, str); //Also parser can understand 2 standart constants and 2 own ones
+            cin >> myExp;
+            cout << "\n\n";
+            //myExp.setExpression(str);
+            cout << "f(" + std::to_string(myExp.getXValue()) + ") = " << myExp << " = " << myExp(); //Just use a default value of variable
 		}
 
 		/*catch (smp::InvalidExpression& exp) //Base kind of any excecption (parent class for all exceptions in smp)
@@ -154,7 +154,7 @@ int N_factroial(int n)
 	return result;
 }
 
-double Factorial(double x) //Custom realization of factorial
+double Factorial(double x)//Custom realization of factorial
 {
 	if (x < 0)
 		throw smp::IncorrectArgument("Factorial argument can`t be less than zero!", "fact", to_string(x)); //We are throwing an exception

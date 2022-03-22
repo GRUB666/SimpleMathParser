@@ -1,8 +1,8 @@
 #ifndef SMPEXCEPTIONS_H
 #define SMPEXCEPTIONS_H
 
-#include <string>
 #include "SimpleMathParser.h"
+
 namespace smp {
 //Exception-classes----------------------------
 enum  ExceptionType //Views of exceptions

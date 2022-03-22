@@ -52,9 +52,9 @@ namespace smp //Simple Math Parser namespace
 
 		void InitializeConstants(std::map<char, double> *consts = nullptr, bool addConstants = true);
 		void InitializeFunctions(FunctionsMap *funcs = nullptr, bool addFunctions = true);
-
+        
 		double getFunctionValue(std::string name, double argument);
-		double getNumberFromLetter(char symb, double x_value);
+		double getNumberFromLetter(char symb, double x_value) const;
 	};
 
 	class Oper //Base abstract class
@@ -99,7 +99,7 @@ namespace smp //Simple Math Parser namespace
 
 		void setFunctions(FunctionsMap *funcs = nullptr, bool addFunctions = true); //Set functions with functions Map
         FunctionsMap& getFunctions() const; //Returns FunctionsMap
-		static void checkFunctionNameCorrectness(std::string func_name); //Check if function name is not correct
+		static bool checkFunctionNameCorrectness(const std::string& func_name, bool isThrow = true); //Check if function name is not correct
 		void addFunction(std::string name, Function function); //Adds a current function (with function pointer)
 		void addFunction(std::string name, Expression &exp); //Add function with Expression instance
 		void addFunction(std::string name, std::string function_str); //Add function with string of expression
@@ -160,22 +160,19 @@ namespace smp //Simple Math Parser namespace
 
 		FunctionWrapper(std::shared_ptr<Expression> ptr) : exp_ptr(ptr) {}
 
-		std::string getFunctionNotation();
+		std::string getFunctionNotation() const;
 
 		FunctionWrapper(const FunctionWrapper& copy);
 
-		double getCalculatedValue(double argument);
+		double getCalculatedValue(double argument) const;
 
-		bool isExpressionObject() { return exp_ptr != nullptr; }
+		bool isExpressionObject() const { return exp_ptr != nullptr; }
 
 		std::shared_ptr<ParserSettings> getParserSettingsFromExpressionObject();
 
 		Expression* getExpPtr() { return exp_ptr.get(); }
 	};
 	
-
-
-
 	class Multiplication_Oper : public Oper, public IActionsMap
 	{
 	private:
@@ -189,8 +186,8 @@ namespace smp //Simple Math Parser namespace
 		~Multiplication_Oper() { };
 	};
 
-
-
+    
+    
 	class Number : public Oper 
 	{
 	private:
