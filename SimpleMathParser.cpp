@@ -113,13 +113,14 @@ double ParserSettings::getNumberFromLetter(char symb, double x_value)
 		auto it = Constants.find(symb);
 		if (it != Constants.end())
 			return Constants.at(symb);
-		else
-			return 1;
+		else			
+			throw IncorrectSyntax("Unknown variable");;
 	}
 
 	else
 		return x_value;
-	return 0.0;
+	
+	throw IncorrectSyntax("Unknown variable");
 }
 
 //Function ParserSettings::getFunctionFromString(std::string func_name)
